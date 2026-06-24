@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Rubik", system-ui, sans-serif;
+  --font-mono: "Rubik", monospace;
+
+  /* POS color palette — deep navy + teal accent */
+  --color-pos-bg:       #020817;
+  --color-pos-surface:  #0D1526;
+  --color-pos-card:     #131F35;
+  --color-pos-elevated: #1A2A44;
+  --color-pos-border:   #1E3050;
+  --color-pos-accent:   #14B8A6;
+  --color-pos-accent2:  #0D9488;
+  --color-pos-blue:     #3B82F6;
+  --color-pos-emerald:  #10B981;
+  --color-pos-amber:    #F59E0B;
+  --color-pos-red:      #EF4444;
+  --color-pos-text:     #F1F5F9;
+  --color-pos-muted:    #64748B;
+  --color-pos-faint:    #1E3050;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  font-family: "Rubik", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numbers everywhere for price alignment */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Subtle grid pattern background */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(20, 184, 166, 0.04) 1px, transparent 1px),
+    linear-gradient(to right, rgba(20, 184, 166, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Shake animation for wrong PIN */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-8px); }
+  30%       { transform: translateX(8px); }
+  45%       { transform: translateX(-6px); }
+  60%       { transform: translateX(6px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+.shake { animation: shake 0.5s ease-in-out; }
+
+/* Scrollbar */
+::-webkit-scrollbar        { width: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #1E3050; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #2D4A70; }
+
+/* Cart item fade-in */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeSlideIn 0.2s ease-out; }
