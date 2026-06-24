@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { User } from "./types";
+import { CartProvider } from "./context/CartContext";
 import LoginScreen from "./screens/LoginScreen";
 import POSScreen from "./screens/POSScreen";
 
@@ -10,5 +11,9 @@ export default function App() {
     return <LoginScreen onLogin={setUser} />;
   }
 
-  return <POSScreen user={user} onLogout={() => setUser(null)} />;
+  return (
+    <CartProvider>
+      <POSScreen user={user} onLogout={() => setUser(null)} />
+    </CartProvider>
+  );
 }

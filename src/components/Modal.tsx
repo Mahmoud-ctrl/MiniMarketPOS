@@ -18,11 +18,11 @@ export default function Modal({ title, onClose, children, width = "max-w-lg" }: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/55 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className={`relative ${width} w-full bg-[#0D1526] border border-[#1E3050] rounded-2xl shadow-2xl shadow-black/50 fade-in flex flex-col max-h-[90vh]`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E3050] flex-shrink-0">
+      <div className={`relative ${width} w-full bg-[#0C1828] border border-[#1A2D45] rounded-2xl shadow-2xl shadow-black/70 modal-enter flex flex-col max-h-[90vh]`}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#1A2D45] flex-shrink-0">
           <h2 className="text-white font-semibold">{title}</h2>
           <button
             onClick={onClose}
