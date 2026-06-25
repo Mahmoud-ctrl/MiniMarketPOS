@@ -10,6 +10,7 @@ export interface Category {
   id: number;
   name: string;
   description: string | null;
+  parent_id: number | null;
 }
 
 export interface Supplier {
@@ -85,4 +86,43 @@ export interface CartItem {
 
 export interface AppError {
   message: string;
+}
+
+// ── Purchases ─────────────────────────────────────────────────────────────────
+
+export interface Purchase {
+  id: number;
+  supplier_id: number | null;
+  supplier_name: string | null;
+  created_by: number | null;
+  received_by: number | null;
+  reference_no: string | null;
+  total_amount: number;         // BIGINT cents
+  status: "pending" | "received" | "cancelled";
+  notes: string | null;
+  created_at: string;
+  received_at: string | null;
+}
+
+export interface PurchaseItem {
+  id: number;
+  purchase_id: number;
+  product_id: number;
+  product_name: string;
+  unit: string;
+  quantity: number;
+  unit_cost: number;   // BIGINT cents
+  subtotal: number;    // BIGINT cents
+}
+
+export interface PurchaseWithItems extends Purchase {
+  items: PurchaseItem[];
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+export interface Setting {
+  key: string;
+  value: string;
+  updated_at: string;
 }

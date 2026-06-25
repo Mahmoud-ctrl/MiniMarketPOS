@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BarChart3, BoxesIcon, Home, LogOut,
-  Package, QrCode, Search, Settings, Users, Zap,
+  Package, QrCode, Search, Settings, Truck, Users, Zap,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { Category, PriceTier, Product, User } from "../types";
 import { useCart } from "../context/CartContext";
+import { useCurrency } from "../context/CurrencyContext";
 import CartPanel from "../components/CartPanel";
 import InventoryScreen from "./InventoryScreen";
+import PurchasesScreen from "./PurchasesScreen";
 import SettingsScreen from "./SettingsScreen";
 
 interface Props {
@@ -15,9 +17,9 @@ interface Props {
   onLogout: () => void;
 }
 
-type Screen = "pos" | "inventory" | "reports" | "customers" | "settings";
+type Screen = "pos" | "inventory" | "purchases" | "reports" | "customers" | "settings";
 
-const fmt = (n: number) => `$${(n / 100).toFixed(2)}`;
+// fmt is provided by useCurrency — see inside POSScreen component
 
 // Distinct color per category (derived from id)
 const CAT_COLORS = [
@@ -31,12 +33,14 @@ const catColor = (id: number | null) =>
 const NAV: { id: Screen; icon: typeof Home; label: string }[] = [
   { id: "pos",       icon: Home,     label: "POS"       },
   { id: "inventory", icon: Package,  label: "Inventory" },
+  { id: "purchases", icon: Truck,    label: "Purchases" },
   { id: "reports",   icon: BarChart3, label: "Reports"  },
   { id: "customers", icon: Users,    label: "Customers" },
   { id: "settings",  icon: Settings, label: "Settings"  },
 ];
 
 export default function POSScreen({ user, onLogout }: Props) {
+  const { fmt, fmtAlt, showAlt } = useCurrency();
   const { addToCart, priceTier, setPriceTier, items: cartItems } = useCart();
 
   const [screen, setScreen]           = useState<Screen>("pos");
@@ -58,12 +62,30 @@ export default function POSScreen({ user, onLogout }: Props) {
 
   useEffect(() => {
     setLoadingProd(true);
+    // If the selected category has children, fetch without category filter and
+    // narrow client-side so both the parent and all its children are included.
+    const childIds = activeCat != null
+      ? categories.filter(c => c.parent_id === activeCat).map(c => c.id)
+      : [];
+    const isRoot = childIds.length > 0;
+
     api
-      .getProducts({ search: search || undefined, category_id: activeCat ?? undefined, limit: 80 })
-      .then(setProducts)
+      .getProducts({
+        search:      search || undefined,
+        category_id: activeCat != null && !isRoot ? activeCat : undefined,
+        limit:       isRoot ? 300 : 80,
+      })
+      .then(data => {
+        if (isRoot) {
+          const relevant = new Set([activeCat!, ...childIds]);
+          setProducts(data.filter(p => p.category_id != null && relevant.has(p.category_id)));
+        } else {
+          setProducts(data);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoadingProd(false));
-  }, [search, activeCat]);
+  }, [search, activeCat, categories]);
 
   // Focus search on any printable keystroke while on POS screen
   useEffect(() => {
@@ -142,6 +164,8 @@ export default function POSScreen({ user, onLogout }: Props) {
       {/* ── Main content ─────────────────────────────────────────── */}
       {screen === "inventory" ? (
         <InventoryScreen user={user} />
+      ) : screen === "purchases" ? (
+        <PurchasesScreen user={user} />
       ) : screen === "settings" ? (
         <SettingsScreen user={user} />
       ) : screen !== "pos" ? (
@@ -300,8 +324,15 @@ export default function POSScreen({ user, onLogout }: Props) {
                             {p.name}
                           </div>
                           <div className="flex items-baseline justify-between mt-4 pt-3 border-t border-[#1A2D45]">
-                            <div className="text-[#14B8A6] font-bold text-xl tabular-nums leading-none">
-                              {fmt(price)}
+                            <div>
+                              <div className="text-[#14B8A6] font-bold text-xl tabular-nums leading-none">
+                                {fmt(price)}
+                              </div>
+                              {showAlt && (
+                                <div className="text-slate-600 text-[10px] tabular-nums leading-tight mt-0.5">
+                                  {fmtAlt(price)}
+                                </div>
+                              )}
                             </div>
                             <div className="text-slate-600 text-[11px] font-medium">
                               {p.unit}

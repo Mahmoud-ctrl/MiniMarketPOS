@@ -1,7 +1,8 @@
 -- Extend v_product_stock with fields needed for inventory management UI.
 -- category_id, category_name, supplier_id, item_type, apply_discount, sold_by_amount
 -- were missing from the original view.
-CREATE OR REPLACE VIEW v_product_stock AS
+DROP VIEW IF EXISTS v_product_stock;
+CREATE VIEW v_product_stock AS
 SELECT
     p.id                         AS product_id,
     p.barcode,

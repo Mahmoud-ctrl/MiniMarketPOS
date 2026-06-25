@@ -2,6 +2,7 @@ import { Minus, Plus, ShoppingBag, Banknote, CreditCard, Wallet, X } from "lucid
 import { api } from "../lib/api";
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
+import { useCurrency } from "../context/CurrencyContext";
 
 interface Props {
   cashierId:      number;
@@ -11,8 +12,6 @@ interface Props {
 
 type PayMethod = "cash" | "card" | "wallet";
 
-const fmt = (n: number) => `$${(n / 100).toFixed(2)}`;
-
 const PAY_OPTIONS: { id: PayMethod; icon: typeof Banknote; label: string }[] = [
   { id: "cash",   icon: Banknote,   label: "Cash"   },
   { id: "card",   icon: CreditCard, label: "Card"   },
@@ -20,6 +19,7 @@ const PAY_OPTIONS: { id: PayMethod; icon: typeof Banknote; label: string }[] = [
 ];
 
 export default function CartPanel({ cashierId, sessionId, onSaleComplete }: Props) {
+  const { fmt, fmtAlt, toDb, inputStep, showAlt } = useCurrency();
   const { items, changeQty, removeFromCart, clearCart, subtotal, discount, tva } = useCart();
 
   const [payMethod,  setPayMethod]  = useState<PayMethod>("cash");
@@ -27,7 +27,7 @@ export default function CartPanel({ cashierId, sessionId, onSaleComplete }: Prop
   const [processing, setProcessing] = useState(false);
 
   const total     = subtotal - discount + tva;
-  const tenderedN = Math.round(parseFloat(tendered || "0") * 100);
+  const tenderedN = toDb(tendered);
   const change    = tenderedN - total;
   const canCharge = items.length > 0 && (payMethod !== "cash" || tenderedN >= total);
 
@@ -171,7 +171,12 @@ export default function CartPanel({ cashierId, sessionId, onSaleComplete }: Prop
             )}
             <div className="flex justify-between items-baseline pt-2.5 border-t border-[#1A2D45]">
               <span className="text-white font-bold">Total</span>
-              <span className="text-[#14B8A6] font-bold text-2xl tabular-nums">{fmt(total)}</span>
+              <div className="text-right">
+                <div className="text-[#14B8A6] font-bold text-2xl tabular-nums">{fmt(total)}</div>
+                {showAlt && total > 0 && (
+                  <div className="text-slate-500 text-xs tabular-nums">{fmtAlt(total)}</div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -200,7 +205,7 @@ export default function CartPanel({ cashierId, sessionId, onSaleComplete }: Prop
             <input
               type="number"
               min="0"
-              step="0.01"
+              step={inputStep}
               placeholder="Amount tendered…"
               value={tendered}
               onChange={(e) => setTendered(e.target.value)}

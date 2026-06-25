@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Category, PriceTier, Product, ProductStock, Supplier, User } from "../types";
+import { Category, PriceTier, Product, ProductStock, Purchase, PurchaseWithItems, Setting, Supplier, User } from "../types";
 
 interface LoginResult { user: User }
 
@@ -90,11 +90,11 @@ export const api = {
   getCategories: () =>
     invoke<Category[]>("get_categories"),
 
-  createCategory: (payload: { name: string; description?: string | null }) =>
+  createCategory: (payload: { name: string; description?: string | null; parent_id?: number | null }) =>
     invoke<Category>("create_category", { payload }),
 
-  updateCategory: (id: number, name?: string, description?: string | null) =>
-    invoke<Category>("update_category", { id, name: name ?? null, description: description ?? null }),
+  updateCategory: (id: number, name: string | null, description: string | null, parent_id: number | null) =>
+    invoke<Category>("update_category", { id, name, description, parent_id }),
 
   deleteCategory: (id: number) =>
     invoke<void>("delete_category", { id }),
@@ -124,6 +124,13 @@ export const api = {
     created_by: number;
   }) => invoke<void>("adjust_inventory", { payload }),
 
+  receiveStock: (args: {
+    product_id: number;
+    quantity: number;
+    notes?: string | null;
+    created_by: number;
+  }) => invoke<void>("receive_stock", args),
+
   // ── Sales ─────────────────────────────────────────────────────
   createSale: (payload: {
     session_id?: number;
@@ -143,6 +150,46 @@ export const api = {
     payment_method?: "cash" | "card" | "wallet" | "credit";
     notes?: string;
   }) => invoke<{ id: number }>("create_sale", { payload }),
+
+  // ── Purchases ─────────────────────────────────────────────────
+  createPurchase: (payload: {
+    supplier_id?: number | null;
+    created_by: number;
+    reference_no?: string | null;
+    notes?: string | null;
+    items: { product_id: number; quantity: number; unit_cost: number }[];
+  }) => invoke<PurchaseWithItems>("create_purchase", { payload }),
+
+  getPurchases: (params?: {
+    supplier_id?: number | null;
+    status?: string | null;
+    limit?: number;
+    offset?: number;
+  }) => invoke<Purchase[]>("get_purchases", {
+    supplier_id: params?.supplier_id ?? null,
+    status:      params?.status      ?? null,
+    limit:       params?.limit       ?? null,
+    offset:      params?.offset      ?? null,
+  }),
+
+  getPurchaseById: (id: number) =>
+    invoke<PurchaseWithItems>("get_purchase_by_id", { id }),
+
+  receivePurchase: (id: number, received_by: number) =>
+    invoke<Purchase>("receive_purchase", { id, received_by }),
+
+  cancelPurchase: (id: number) =>
+    invoke<Purchase>("cancel_purchase", { id }),
+
+  voidPurchase: (id: number, voided_by: number) =>
+    invoke<Purchase>("void_purchase", { id, voided_by }),
+
+  // ── Settings ──────────────────────────────────────────────────
+  getSettings: () =>
+    invoke<Setting[]>("get_settings"),
+
+  updateSetting: (key: string, value: string) =>
+    invoke<Setting>("update_setting", { key, value }),
 
   // ── Cash sessions ─────────────────────────────────────────────
   openCashSession: (cashier_id: number, opening_balance: number) =>

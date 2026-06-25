@@ -2,6 +2,8 @@ pub mod auth;
 pub mod categories;
 pub mod inventory;
 pub mod products;
+pub mod purchases;
 pub mod sales;
 pub mod sessions;
+pub mod settings;
 pub mod suppliers;

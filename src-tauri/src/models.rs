@@ -22,6 +22,7 @@ pub struct Category {
     pub id:          i64,
     pub name:        String,
     pub description: Option<String>,
+    pub parent_id:   Option<i64>,
     pub created_at:  DateTime<Utc>,
 }
 
@@ -29,6 +30,7 @@ pub struct Category {
 pub struct CreateCategoryPayload {
     pub name:        String,
     pub description: Option<String>,
+    pub parent_id:   Option<i64>,
 }
 
 // ── Suppliers ────────────────────────────────────────────────────────────────
@@ -263,6 +265,58 @@ pub struct AdjustInventoryPayload {
     pub created_by:    i64,
 }
 
+// ── Purchases ─────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct Purchase {
+    pub id:           i64,
+    pub supplier_id:  Option<i64>,
+    pub created_by:   Option<i64>,
+    pub received_by:  Option<i64>,
+    pub reference_no: Option<String>,
+    pub total_amount: i64,
+    pub status:       String,
+    pub notes:        Option<String>,
+    pub created_at:   DateTime<Utc>,
+    pub received_at:  Option<DateTime<Utc>>,
+    pub supplier_name: Option<String>,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct PurchaseItemRow {
+    pub id:           i64,
+    pub purchase_id:  i64,
+    pub product_id:   i64,
+    pub product_name: String,
+    pub unit:         String,
+    pub quantity:     f64,
+    pub unit_cost:    i64,
+    pub subtotal:     i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PurchaseWithItems {
+    #[serde(flatten)]
+    pub purchase: Purchase,
+    pub items:    Vec<PurchaseItemRow>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePurchaseItemPayload {
+    pub product_id: i64,
+    pub quantity:   f64,
+    pub unit_cost:  i64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePurchasePayload {
+    pub supplier_id:  Option<i64>,
+    pub created_by:   i64,
+    pub reference_no: Option<String>,
+    pub notes:        Option<String>,
+    pub items:        Vec<CreatePurchaseItemPayload>,
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
@@ -274,4 +328,13 @@ pub struct LoginPayload {
 #[derive(Debug, Serialize)]
 pub struct LoginResult {
     pub user: User,
+}
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct Setting {
+    pub key:        String,
+    pub value:      String,
+    pub updated_at: DateTime<Utc>,
 }

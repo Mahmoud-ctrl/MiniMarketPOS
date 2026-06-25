@@ -5,7 +5,7 @@ mod models;
 
 use tauri::Manager;
 
-const DATABASE_URL: &str = "postgresql://postgres:1289@localhost:5432/minimarket";
+const DATABASE_URL: &str = "postgresql://postgres:abed@localhost:5432/minimarket";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -59,11 +59,22 @@ pub fn run() {
             commands::inventory::get_product_stock,
             commands::inventory::get_low_stock,
             commands::inventory::adjust_inventory,
+            commands::inventory::receive_stock,
+            // Purchases
+            commands::purchases::create_purchase,
+            commands::purchases::get_purchases,
+            commands::purchases::get_purchase_by_id,
+            commands::purchases::receive_purchase,
+            commands::purchases::cancel_purchase,
+            commands::purchases::void_purchase,
             // Cash sessions
             commands::sessions::open_cash_session,
             commands::sessions::close_cash_session,
             commands::sessions::get_active_session,
             commands::sessions::get_sessions,
+            // Settings
+            commands::settings::get_settings,
+            commands::settings::update_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

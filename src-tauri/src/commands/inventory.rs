@@ -6,6 +6,34 @@ use crate::{
     models::{AdjustInventoryPayload, ProductStock},
 };
 
+/// Record incoming stock from a supplier purchase.
+#[tauri::command]
+pub async fn receive_stock(
+    state:      State<'_, AppState>,
+    product_id: i64,
+    quantity:   f64,
+    notes:      Option<String>,
+    created_by: i64,
+) -> Result<(), AppError> {
+    if quantity <= 0.0 {
+        return Err(AppError { message: "Quantity must be positive".into() });
+    }
+    sqlx::query(
+        r#"
+        INSERT INTO inventory_movements
+            (product_id, quantity_delta, movement_type, notes, created_by)
+        VALUES ($1, $2, 'purchase', $3, $4)
+        "#,
+    )
+    .bind(product_id)
+    .bind(quantity)
+    .bind(notes.as_deref())
+    .bind(created_by)
+    .execute(&state.db)
+    .await?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn get_product_stock(
     state:      State<'_, AppState>,

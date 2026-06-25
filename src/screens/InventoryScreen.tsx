@@ -4,15 +4,16 @@ import {
   Search, Snowflake, Trash2, TrendingDown,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { generateEAN13 } from "../lib/barcode";
 import { Category, ProductStock, Supplier, User } from "../types";
 import Modal from "../components/Modal";
+import CategorySelect from "../components/CategorySelect";
+import AddProductModal from "./AddProductModal";
+import { useCurrency } from "../context/CurrencyContext";
 
 interface Props { user: User }
 
-const fmt    = (n: number) => `$${(n / 100).toFixed(2)}`;
 const orNull = (s: string) => s.trim() || null;
-const toStr  = (n: number | null | undefined, decimals = 2) =>
-  n == null ? "" : (n / 100).toFixed(decimals);
 const toPct  = (f: number) => (f * 100).toFixed(1);
 
 function stockColor(qty: number, min: number) {
@@ -32,17 +33,8 @@ interface PF {
   min_stock: string; expiry_date: string;
 }
 
-const emptyPF: PF = {
-  barcode: "", internal_code: "", name: "",
-  category_id: "", supplier_id: "",
-  item_type: "consumable", unit: "pcs", packaging_qty: "1",
-  cost_price: "", sell_price_retail: "",
-  sell_price_wholesale: "", sell_price_special: "",
-  tva_rate: "0", apply_tva: false, apply_discount: true, sold_by_amount: false,
-  min_stock: "0", expiry_date: "",
-};
 
-function stockToPF(p: ProductStock): PF {
+function stockToPF(p: ProductStock, fromDb: (n: number) => string): PF {
   return {
     barcode:              p.barcode              ?? "",
     internal_code:        p.internal_code        ?? "",
@@ -52,10 +44,10 @@ function stockToPF(p: ProductStock): PF {
     item_type:            p.item_type,
     unit:                 p.unit,
     packaging_qty:        String(p.packaging_qty),
-    cost_price:           toStr(p.cost_price),
-    sell_price_retail:    toStr(p.sell_price_retail),
-    sell_price_wholesale: toStr(p.sell_price_wholesale),
-    sell_price_special:   toStr(p.sell_price_special),
+    cost_price:           fromDb(p.cost_price),
+    sell_price_retail:    fromDb(p.sell_price_retail),
+    sell_price_wholesale: fromDb(p.sell_price_wholesale),
+    sell_price_special:   fromDb(p.sell_price_special),
     tva_rate:             toPct(p.tva_rate),
     apply_tva:            p.apply_tva,
     apply_discount:       p.apply_discount,
@@ -65,8 +57,7 @@ function stockToPF(p: ProductStock): PF {
   };
 }
 
-function pfToPayload(f: PF) {
-  const c = (s: string) => Math.round(parseFloat(s || "0") * 100);
+function pfToPayload(f: PF, toDb: (s: string) => number) {
   return {
     barcode:              orNull(f.barcode),
     internal_code:        orNull(f.internal_code),
@@ -76,10 +67,10 @@ function pfToPayload(f: PF) {
     item_type:            f.item_type   || "consumable",
     unit:                 f.unit        || "pcs",
     packaging_qty:        parseInt(f.packaging_qty || "1"),
-    cost_price:           c(f.cost_price),
-    sell_price_retail:    c(f.sell_price_retail),
-    sell_price_wholesale: c(f.sell_price_wholesale),
-    sell_price_special:   c(f.sell_price_special),
+    cost_price:           toDb(f.cost_price),
+    sell_price_retail:    toDb(f.sell_price_retail),
+    sell_price_wholesale: toDb(f.sell_price_wholesale),
+    sell_price_special:   toDb(f.sell_price_special),
     tva_rate:             parseFloat(f.tva_rate || "0") / 100,
     apply_tva:            f.apply_tva,
     apply_discount:       f.apply_discount,
@@ -128,20 +119,28 @@ function ProductFormModal({
   categories: Category[]; suppliers: Supplier[];
   onClose: () => void; onSaved: () => void;
 }) {
-  const [f, setF] = useState<PF>(initial);
+  const { symbol, fmtNum, toDb, inputStep } = useCurrency();
+  const [f, setF]       = useState<PF>(initial);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError]   = useState("");
 
   const set = (key: keyof PF) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setF(prev => ({ ...prev, [key]: e.target.value }));
 
+  // Live pricing strip
+  const cost      = parseFloat(f.cost_price       || "0");
+  const retail    = parseFloat(f.sell_price_retail || "0");
+  const showStrip = cost > 0 && retail > 0;
+  const margin    = showStrip ? ((retail - cost) / cost) * 100 : 0;
+  const profit    = showStrip ? retail - cost : 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!f.name.trim()) { setError("Name is required"); return; }
+    if (!f.name.trim())       { setError("Name is required");         return; }
     if (!f.sell_price_retail) { setError("Retail price is required"); return; }
     setSaving(true); setError("");
     try {
-      const payload = pfToPayload(f);
+      const payload = pfToPayload(f, toDb);
       if (editId != null) {
         await api.updateProduct(editId, payload);
       } else {
@@ -149,7 +148,12 @@ function ProductFormModal({
       }
       onSaved();
     } catch (err: unknown) {
-      const msg = (err as { message?: string })?.message ?? String(err);
+      const raw = (err as { message?: string })?.message ?? String(err);
+      const msg = raw.includes("products_barcode_key")
+        ? "Barcode already in use — use a different one or leave it blank."
+        : raw.includes("products_internal_code_key")
+        ? "Internal code already in use — use a different one or leave it blank."
+        : raw;
       setError(msg);
     } finally {
       setSaving(false);
@@ -158,97 +162,140 @@ function ProductFormModal({
 
   return (
     <Modal title={editId != null ? "Edit Product" : "Add Product"} onClose={onClose} width="max-w-2xl">
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        {/* Basic */}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Product Name" required>
-            <input className={iCls} value={f.name} onChange={set("name")} placeholder="e.g. Marlboro Red" />
-          </Field>
-          <Field label="Barcode">
-            <input className={iCls} value={f.barcode} onChange={set("barcode")} placeholder="EAN-13 / UPC" />
-          </Field>
-          <Field label="Internal Code">
-            <input className={iCls} value={f.internal_code} onChange={set("internal_code")} placeholder="SKU / store code" />
-          </Field>
-          <Field label="Item Type">
-            <select className={selCls} value={f.item_type} onChange={set("item_type")}>
-              <option value="consumable">Consumable</option>
-              <option value="non_consumable">Non-consumable</option>
-              <option value="service">Service</option>
-            </select>
-          </Field>
-        </div>
+      <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
-        {/* Classification */}
-        <div className="grid grid-cols-3 gap-3">
-          <Field label="Category">
-            <select className={selCls} value={f.category_id} onChange={set("category_id")}>
-              <option value="">— None —</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Supplier">
-            <select className={selCls} value={f.supplier_id} onChange={set("supplier_id")}>
-              <option value="">— None —</option>
-              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Unit">
-            <input className={iCls} value={f.unit} onChange={set("unit")} placeholder="pcs / kg / L / box" />
-          </Field>
-        </div>
+        {/* ── Identity ── */}
+        <section className="space-y-3">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Identity</p>
 
-        {/* Pricing */}
-        <div>
-          <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Pricing (in $)</p>
-          <div className="grid grid-cols-4 gap-3">
-            <Field label="Cost Price" required>
-              <input className={iCls} type="number" min="0" step="0.01" value={f.cost_price} onChange={set("cost_price")} placeholder="0.00" />
-            </Field>
-            <Field label="Retail" required>
-              <input className={iCls} type="number" min="0" step="0.01" value={f.sell_price_retail} onChange={set("sell_price_retail")} placeholder="0.00" />
-            </Field>
-            <Field label="Wholesale">
-              <input className={iCls} type="number" min="0" step="0.01" value={f.sell_price_wholesale} onChange={set("sell_price_wholesale")} placeholder="0.00" />
-            </Field>
-            <Field label="Special">
-              <input className={iCls} type="number" min="0" step="0.01" value={f.sell_price_special} onChange={set("sell_price_special")} placeholder="0.00" />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Field label="Product Name" required>
+                <input className={iCls} value={f.name} onChange={set("name")} placeholder="e.g. Marlboro Red" autoFocus />
+              </Field>
+            </div>
+            <Field label="Unit">
+              <input className={iCls} value={f.unit} onChange={set("unit")} placeholder="pcs / kg / bottle" />
             </Field>
           </div>
-        </div>
 
-        {/* Tax, Toggles, Stock */}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="TVA Rate (%)">
-            <input className={iCls} type="number" min="0" max="100" step="0.1" value={f.tva_rate} onChange={set("tva_rate")} placeholder="0" />
-          </Field>
-          <Field label="Min Stock (reorder level)">
-            <input className={iCls} type="number" min="0" step="1" value={f.min_stock} onChange={set("min_stock")} placeholder="0" />
-          </Field>
-          <Field label="Pkg Qty">
-            <input className={iCls} type="number" min="1" step="1" value={f.packaging_qty} onChange={set("packaging_qty")} placeholder="1" />
-          </Field>
-          <Field label="Expiry Date (optional)">
-            <input className={iCls} type="date" value={f.expiry_date} onChange={set("expiry_date")} />
-          </Field>
-        </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Barcode">
+              <div className="flex gap-2">
+                <input className={iCls} value={f.barcode} onChange={set("barcode")} placeholder="EAN-13 / UPC" />
+                <button
+                  type="button"
+                  onClick={() => setF(p => ({ ...p, barcode: generateEAN13() }))}
+                  className="flex-shrink-0 px-3 py-2 bg-[#131F35] border border-[#1E3050] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <RefreshCw size={12} /> Gen
+                </button>
+              </div>
+            </Field>
+            <Field label="Internal Code">
+              <input className={iCls} value={f.internal_code} onChange={set("internal_code")} placeholder="SKU / store code" />
+            </Field>
+          </div>
 
-        <div className="flex flex-wrap gap-5 pt-1">
-          <Toggle checked={f.apply_tva}     onChange={v => setF(p => ({ ...p, apply_tva: v }))}     label="Apply TVA" />
-          <Toggle checked={f.apply_discount} onChange={v => setF(p => ({ ...p, apply_discount: v }))} label="Discountable" />
-          <Toggle checked={f.sold_by_amount} onChange={v => setF(p => ({ ...p, sold_by_amount: v }))} label="Sell by amount" />
-        </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Category">
+              <CategorySelect
+                value={f.category_id}
+                onChange={v => setF(prev => ({ ...prev, category_id: v }))}
+                categories={categories}
+                className={selCls}
+              />
+            </Field>
+            <Field label="Supplier">
+              <select className={selCls} value={f.supplier_id} onChange={set("supplier_id")}>
+                <option value="">— None —</option>
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Item Type">
+              <select className={selCls} value={f.item_type} onChange={set("item_type")}>
+                <option value="consumable">Consumable</option>
+                <option value="non_consumable">Non-consumable</option>
+                <option value="service">Service</option>
+              </select>
+            </Field>
+          </div>
+        </section>
+
+        {/* ── Pricing ── */}
+        <section className="space-y-3">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Pricing ({symbol})</p>
+
+          {showStrip && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 bg-[#0D1526] border border-[#1E3050] rounded-xl text-xs">
+              <span className="text-slate-400">Cost <strong className="text-white">{fmtNum(cost)}</strong></span>
+              <span className="text-slate-700">·</span>
+              <span className="text-slate-400">Retail <strong className="text-[#14B8A6]">{fmtNum(retail)}</strong></span>
+              <span className="text-slate-700">·</span>
+              <span className="text-slate-400">Margin <strong className={margin >= 0 ? "text-emerald-400" : "text-red-400"}>{margin.toFixed(1)}%</strong></span>
+              <span className="text-slate-700">·</span>
+              <span className="text-slate-400">Profit <strong className={profit >= 0 ? "text-emerald-400" : "text-red-400"}>{fmtNum(profit)}</strong></span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-4 gap-3">
+            <Field label="Cost Price">
+              <input className={iCls} type="number" min="0" step={inputStep} value={f.cost_price} onChange={set("cost_price")} placeholder="0" />
+            </Field>
+            <Field label="Retail" required>
+              <input className={iCls} type="number" min="0" step={inputStep} value={f.sell_price_retail} onChange={set("sell_price_retail")} placeholder="0" />
+            </Field>
+            <Field label="Wholesale">
+              <input className={iCls} type="number" min="0" step={inputStep} value={f.sell_price_wholesale} onChange={set("sell_price_wholesale")} placeholder="0" />
+            </Field>
+            <Field label="Special">
+              <input className={iCls} type="number" min="0" step={inputStep} value={f.sell_price_special} onChange={set("sell_price_special")} placeholder="0" />
+            </Field>
+          </div>
+
+          <div className="flex items-end gap-3">
+            <div className="w-36">
+              <Field label="TVA Rate (%)">
+                <input className={iCls} type="number" min="0" max="100" step="0.1" value={f.tva_rate} onChange={set("tva_rate")} placeholder="0" />
+              </Field>
+            </div>
+            <div className="flex flex-wrap gap-5 pb-2">
+              <Toggle checked={f.apply_tva}     onChange={v => setF(p => ({ ...p, apply_tva: v }))}     label="Apply TVA on sale" />
+              <Toggle checked={f.apply_discount} onChange={v => setF(p => ({ ...p, apply_discount: v }))} label="Discountable" />
+              <Toggle checked={f.sold_by_amount} onChange={v => setF(p => ({ ...p, sold_by_amount: v }))} label="Sell by amount" />
+            </div>
+          </div>
+        </section>
+
+        {/* ── Stock ── */}
+        <section className="space-y-3">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Stock</p>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Min Stock (reorder)">
+              <input className={iCls} type="number" min="0" step="1" value={f.min_stock} onChange={set("min_stock")} placeholder="0" />
+            </Field>
+            <Field label="Packaging Qty">
+              <input className={iCls} type="number" min="1" step="1" value={f.packaging_qty} onChange={set("packaging_qty")} placeholder="1" />
+            </Field>
+            <Field label="Expiry Date">
+              <input className={iCls} type="date" value={f.expiry_date} onChange={set("expiry_date")} />
+            </Field>
+          </div>
+        </section>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2 border-t border-[#1E3050]">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">
+          <button type="button" onClick={onClose}
+            className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">
             Cancel
           </button>
-          <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
+          <button type="submit" disabled={saving}
+            className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
             {saving ? "Saving…" : editId != null ? "Save Changes" : "Add Product"}
           </button>
         </div>
+
       </form>
     </Modal>
   );
@@ -346,6 +393,7 @@ function AdjustModal({
 
 // ── Main screen ────────────────────────────────────────────────────────────────
 export default function InventoryScreen({ user }: Props) {
+  const { fmt, fromDb } = useCurrency();
   const [stocks, setStocks]         = useState<ProductStock[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers]   = useState<Supplier[]>([]);
@@ -531,15 +579,14 @@ export default function InventoryScreen({ user }: Props) {
 
       {/* Modals */}
       {showAdd && (
-        <ProductFormModal
-          initial={emptyPF} editId={null}
-          categories={categories} suppliers={suppliers}
+        <AddProductModal
+          categories={categories} suppliers={suppliers} user={user}
           onClose={() => setShowAdd(false)} onSaved={handleSaved}
         />
       )}
       {editing && (
         <ProductFormModal
-          initial={stockToPF(editing)} editId={editing.product_id}
+          initial={stockToPF(editing, fromDb)} editId={editing.product_id}
           categories={categories} suppliers={suppliers}
           onClose={() => setEditing(null)} onSaved={handleSaved}
         />

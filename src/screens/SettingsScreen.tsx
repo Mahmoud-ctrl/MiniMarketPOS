@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Check, Pencil, Plus, Tag, Trash2, Truck, User as UserIcon, Users } from "lucide-react";
+import { Check, ChevronRight, DollarSign, Pencil, Plus, Store, Tag, Trash2, Truck, Upload, User as UserIcon, Users } from "lucide-react";
 import { api } from "../lib/api";
 import { Category, Supplier, User } from "../types";
+import { groupCategories } from "../lib/categories";
+import { useCurrency } from "../context/CurrencyContext";
 import Modal from "../components/Modal";
 
 interface Props { user: User }
 
-type Tab = "users" | "categories" | "suppliers";
+type Tab = "store" | "users" | "categories" | "suppliers" | "currency";
 
 const iCls   = "w-full px-3 py-2 bg-[#131F35] border border-[#1E3050] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-white text-sm placeholder-slate-600 transition-colors";
 const selCls = iCls + " cursor-pointer";
@@ -192,58 +194,120 @@ function ChangePinModal({ user, onClose, onSaved }: { user: User; onClose: () =>
 
 // ── Categories tab ─────────────────────────────────────────────────────────────
 function CategoriesTab() {
-  const [cats, setCats]         = useState<Category[]>([]);
-  const [editing, setEditing]   = useState<Category | null>(null);
-  const [showAdd, setShowAdd]   = useState(false);
-  const [deleting, setDeleting] = useState<Category | null>(null);
+  const [cats, setCats]       = useState<Category[]>([]);
+  const [editing, setEditing] = useState<Category | null>(null);
+  // addingUnder: null = adding a root category, number = adding sub under that parent id
+  const [addingUnder, setAddingUnder] = useState<number | null | "closed">("closed");
+  const [deleting, setDeleting]       = useState<Category | null>(null);
 
   const load = () => api.getCategories().then(setCats).catch(console.error);
   useEffect(() => { load(); }, []);
+
+  const groups  = groupCategories(cats);
+  const rootCats = cats.filter(c => c.parent_id === null);
+
+  const btnRow = "w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer";
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <p className="text-slate-400 text-sm">{cats.length} categories</p>
-        <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-xs rounded-xl transition-colors cursor-pointer">
+        <button
+          onClick={() => setAddingUnder(null)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+        >
           <Plus size={13} /> Add Category
         </button>
       </div>
 
       <div className="space-y-1.5">
-        {cats.map(c => (
-          <div key={c.id} className="flex items-center gap-3 bg-[#131F35] border border-[#1E3050] rounded-xl px-4 py-3 group">
-            <div className="w-7 h-7 rounded-lg bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center flex-shrink-0">
-              <Tag size={13} className="text-[#14B8A6]" />
+        {groups.map(({ parent, children }) => (
+          <div key={parent.id}>
+            {/* Parent row */}
+            <div className="flex items-center gap-3 bg-[#131F35] border border-[#1E3050] rounded-xl px-4 py-3 group">
+              <div className="w-7 h-7 rounded-lg bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center flex-shrink-0">
+                <Tag size={13} className="text-[#14B8A6]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-medium text-sm">{parent.name}</span>
+                  {children.length > 0 && (
+                    <span className="text-slate-600 text-[10px] bg-[#1A2A44] px-1.5 py-0.5 rounded-md">
+                      {children.length} sub
+                    </span>
+                  )}
+                </div>
+                {parent.description && <div className="text-slate-500 text-xs truncate">{parent.description}</div>}
+              </div>
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => setAddingUnder(parent.id)}
+                  className="px-2 py-1 text-[11px] text-[#14B8A6] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 border border-[#14B8A6]/20 rounded-lg transition-colors cursor-pointer"
+                >
+                  + Sub
+                </button>
+                <button onClick={() => setEditing(parent)} className={`${btnRow} bg-[#1A2A44] hover:bg-[#243558] text-slate-400 hover:text-white`}><Pencil size={12} /></button>
+                <button onClick={() => setDeleting(parent)} className={`${btnRow} bg-[#1A2A44] hover:bg-red-500/20 text-slate-400 hover:text-red-400`}><Trash2 size={12} /></button>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-white font-medium text-sm">{c.name}</div>
-              {c.description && <div className="text-slate-500 text-xs truncate">{c.description}</div>}
-            </div>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => setEditing(c)} className="w-7 h-7 rounded-lg bg-[#1A2A44] hover:bg-[#243558] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"><Pencil size={12} /></button>
-              <button onClick={() => setDeleting(c)} className="w-7 h-7 rounded-lg bg-[#1A2A44] hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer"><Trash2 size={12} /></button>
-            </div>
+
+            {/* Child rows */}
+            {children.map(child => (
+              <div key={child.id} className="ml-6 mt-0.5 flex items-center gap-3 bg-[#0D1526] border border-[#1A2A44] rounded-xl px-4 py-2.5 group relative">
+                <ChevronRight size={12} className="text-slate-700 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-slate-300 text-sm">{child.name}</span>
+                  {child.description && <div className="text-slate-600 text-xs truncate">{child.description}</div>}
+                </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => setEditing(child)} className={`${btnRow} bg-[#131F35] hover:bg-[#1A2A44] text-slate-400 hover:text-white`}><Pencil size={12} /></button>
+                  <button onClick={() => setDeleting(child)} className={`${btnRow} bg-[#131F35] hover:bg-red-500/20 text-slate-400 hover:text-red-400`}><Trash2 size={12} /></button>
+                </div>
+              </div>
+            ))}
           </div>
         ))}
         {cats.length === 0 && <p className="text-center py-8 text-slate-600 text-sm">No categories yet</p>}
       </div>
 
-      {(showAdd || editing) && (
+      {addingUnder !== "closed" && (
+        <CategoryModal
+          cat={null}
+          preselectedParentId={addingUnder}
+          rootCats={rootCats}
+          onClose={() => setAddingUnder("closed")}
+          onSaved={() => { setAddingUnder("closed"); load(); }}
+        />
+      )}
+      {editing && (
         <CategoryModal
           cat={editing}
-          onClose={() => { setShowAdd(false); setEditing(null); }}
-          onSaved={() => { setShowAdd(false); setEditing(null); load(); }}
+          preselectedParentId={undefined}
+          rootCats={rootCats}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); load(); }}
         />
       )}
       {deleting && (
         <Modal title="Delete Category" onClose={() => setDeleting(null)}>
           <div className="p-6 space-y-4">
-            <p className="text-slate-300 text-sm">Delete <strong className="text-white">{deleting.name}</strong>? Products in this category will become uncategorized.</p>
+            {deleting.parent_id === null && cats.some(c => c.parent_id === deleting.id) ? (
+              <p className="text-slate-300 text-sm">
+                Delete <strong className="text-white">{deleting.name}</strong>? Its sub-categories will become top-level categories. Products will become uncategorized.
+              </p>
+            ) : (
+              <p className="text-slate-300 text-sm">
+                Delete <strong className="text-white">{deleting.name}</strong>? Products in this category will become uncategorized.
+              </p>
+            )}
             <div className="flex justify-end gap-2">
               <button onClick={() => setDeleting(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">Cancel</button>
-              <button onClick={async () => { await api.deleteCategory(deleting.id); setDeleting(null); load(); }}
-                className="px-4 py-2 bg-red-500/15 hover:bg-red-500/25 text-red-400 font-medium text-sm rounded-xl border border-red-500/20 transition-colors cursor-pointer">Delete</button>
+              <button
+                onClick={async () => { await api.deleteCategory(deleting.id); setDeleting(null); load(); }}
+                className="px-4 py-2 bg-red-500/15 hover:bg-red-500/25 text-red-400 font-medium text-sm rounded-xl border border-red-500/20 transition-colors cursor-pointer"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </Modal>
@@ -252,21 +316,34 @@ function CategoriesTab() {
   );
 }
 
-function CategoryModal({ cat, onClose, onSaved }: { cat: Category | null; onClose: () => void; onSaved: () => void }) {
-  const [name, setName]         = useState(cat?.name ?? "");
-  const [desc, setDesc]         = useState(cat?.description ?? "");
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState("");
+function CategoryModal({
+  cat, preselectedParentId, rootCats, onClose, onSaved,
+}: {
+  cat:                 Category | null;
+  preselectedParentId: number | null | undefined;
+  rootCats:            Category[];
+  onClose:             () => void;
+  onSaved:             () => void;
+}) {
+  const [name, setName]     = useState(cat?.name ?? "");
+  const [desc, setDesc]     = useState(cat?.description ?? "");
+  const [parentId, setParentId] = useState<string>(
+    cat?.parent_id != null         ? String(cat.parent_id)          :
+    preselectedParentId != null    ? String(preselectedParentId)     : ""
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { setError("Name is required"); return; }
     setSaving(true); setError("");
+    const pid = parentId ? Number(parentId) : null;
     try {
       if (cat) {
-        await api.updateCategory(cat.id, name.trim(), desc.trim() || null);
+        await api.updateCategory(cat.id, name.trim(), desc.trim() || null, pid);
       } else {
-        await api.createCategory({ name: name.trim(), description: desc.trim() || null });
+        await api.createCategory({ name: name.trim(), description: desc.trim() || null, parent_id: pid });
       }
       onSaved();
     } catch (err: unknown) {
@@ -274,11 +351,22 @@ function CategoryModal({ cat, onClose, onSaved }: { cat: Category | null; onClos
     } finally { setSaving(false); }
   };
 
+  // Only root categories are valid parents (no 3rd level)
+  const parentOptions = rootCats.filter(c => c.id !== cat?.id);
+
   return (
-    <Modal title={cat ? "Edit Category" : "Add Category"} onClose={onClose}>
+    <Modal title={cat ? "Edit Category" : parentId ? "Add Sub-Category" : "Add Category"} onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-3">
         <Field label="Name" required>
-          <input className={iCls} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Beverages" autoFocus />
+          <input className={iCls} value={name} onChange={e => setName(e.target.value)} placeholder={parentId ? "e.g. Soft Drinks" : "e.g. Beverages"} autoFocus />
+        </Field>
+        <Field label="Parent Category">
+          <select className={selCls} value={parentId} onChange={e => setParentId(e.target.value)}>
+            <option value="">— None (top-level) —</option>
+            {parentOptions.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
         </Field>
         <Field label="Description (optional)">
           <input className={iCls} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Short description" />
@@ -400,15 +488,259 @@ function SupplierModal({ supplier, onClose, onSaved }: { supplier: Supplier | nu
   );
 }
 
+// ── Store config tab ───────────────────────────────────────────────────────────
+function StoreConfigTab() {
+  const [name,    setName]    = useState("");
+  const [address, setAddress] = useState("");
+  const [phone,   setPhone]   = useState("");
+  const [email,   setEmail]   = useState("");
+  const [tagline, setTagline] = useState("");
+  const [logo,    setLogo]    = useState("");
+  const [logoWarn, setLogoWarn] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [saved,   setSaved]   = useState(false);
+
+  useEffect(() => {
+    api.getSettings().then(settings => {
+      for (const s of settings) {
+        if (s.key === "store_name")    setName(s.value);
+        if (s.key === "store_address") setAddress(s.value);
+        if (s.key === "store_phone")   setPhone(s.value);
+        if (s.key === "store_email")   setEmail(s.value);
+        if (s.key === "store_tagline") setTagline(s.value);
+        if (s.key === "store_logo")    setLogo(s.value);
+      }
+    }).catch(console.error);
+  }, []);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoWarn(file.size > 500_000);
+    const reader = new FileReader();
+    reader.onload = ev => setLogo(ev.target?.result as string ?? "");
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.updateSetting("store_name",    name);
+      await api.updateSetting("store_address", address);
+      await api.updateSetting("store_phone",   phone);
+      await api.updateSetting("store_email",   email);
+      await api.updateSetting("store_tagline", tagline);
+      await api.updateSetting("store_logo",    logo);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally { setSaving(false); }
+  };
+
+  const taCls = `${iCls} resize-none`;
+
+  return (
+    <div className="max-w-lg space-y-5">
+
+      {/* Logo */}
+      <div>
+        <label className="block text-xs text-slate-400 mb-2">Store Logo</label>
+        <div className="flex items-start gap-4">
+          {/* Preview */}
+          <div className="w-20 h-20 flex-shrink-0 rounded-xl bg-[#131F35] border border-[#1E3050] flex items-center justify-center overflow-hidden">
+            {logo ? (
+              <img src={logo} alt="Store logo" className="w-full h-full object-contain p-1" />
+            ) : (
+              <Store size={28} className="text-slate-700" />
+            )}
+          </div>
+
+          {/* Controls */}
+          <div className="space-y-2 pt-1">
+            <label className="flex items-center gap-1.5 px-3 py-1.5 bg-[#131F35] border border-[#1E3050] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] text-xs rounded-xl transition-colors cursor-pointer">
+              <Upload size={12} /> Upload image
+              <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleLogoChange} />
+            </label>
+            {logo && (
+              <button
+                onClick={() => { setLogo(""); setLogoWarn(false); }}
+                className="block text-xs text-slate-600 hover:text-red-400 transition-colors cursor-pointer"
+              >
+                Remove logo
+              </button>
+            )}
+            <p className="text-slate-600 text-[11px]">PNG / JPG — used on receipts</p>
+            {logoWarn && (
+              <p className="text-amber-400 text-[11px]">Image is large — consider resizing for faster receipts.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Store name */}
+      <Field label="Store Name" required>
+        <input className={iCls} value={name} onChange={e => setName(e.target.value)} placeholder="My Mini Market" />
+      </Field>
+
+      {/* Address */}
+      <Field label="Address">
+        <textarea
+          rows={3}
+          className={taCls}
+          value={address}
+          onChange={e => setAddress(e.target.value)}
+          placeholder={"123 Main St\nBeirut, Lebanon"}
+        />
+      </Field>
+
+      {/* Phone + Email */}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Phone">
+          <input className={iCls} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+961 1 234 567" />
+        </Field>
+        <Field label="Email">
+          <input className={iCls} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="store@example.com" />
+        </Field>
+      </div>
+
+      {/* Tagline */}
+      <Field label="Tagline / Slogan">
+        <input className={iCls} value={tagline} onChange={e => setTagline(e.target.value)} placeholder="Thank you for shopping with us!" />
+      </Field>
+
+      {/* Save */}
+      <div className="pt-2 border-t border-[#1E3050]">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+        >
+          {saved ? <><Check size={14} /> Saved</> : saving ? "Saving…" : "Save Store Info"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Currency tab ───────────────────────────────────────────────────────────────
+function CurrencyTab() {
+  const { baseCurrency, exchangeRate, showAlt, setSetting } = useCurrency();
+
+  const [rate,    setRate]    = useState(String(exchangeRate));
+  const [saving,  setSaving]  = useState(false);
+  const [saved,   setSaved]   = useState(false);
+
+  // Keep local rate in sync if context updates externally
+  const [localBase, setLocalBase]   = useState(baseCurrency);
+  const [localAlt,  setLocalAlt]    = useState(showAlt);
+
+  const handleSave = async () => {
+    const rateNum = parseInt(rate || "0");
+    if (rateNum <= 0) return;
+    setSaving(true);
+    try {
+      await setSetting("base_currency",     localBase);
+      await setSetting("exchange_rate",     String(rateNum));
+      await setSetting("show_alt_currency", String(localAlt));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally { setSaving(false); }
+  };
+
+  const usdExample = localBase === "USD"
+    ? `$1.00 = ل.ل ${parseInt(rate || "0").toLocaleString("en-US")}`
+    : `ل.ل ${parseInt(rate || "0").toLocaleString("en-US")} = $1.00`;
+
+  return (
+    <div className="max-w-md space-y-6">
+      <div>
+        <p className="text-white font-semibold text-sm mb-1">Base Currency</p>
+        <p className="text-slate-500 text-xs mb-3">
+          Prices in the database are stored in this currency. Change only before entering prices — existing prices will NOT be converted.
+        </p>
+        <div className="flex gap-3">
+          {(["USD", "LBP"] as const).map(c => (
+            <button
+              key={c}
+              onClick={() => setLocalBase(c)}
+              className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
+                localBase === c
+                  ? "bg-[#14B8A6]/15 border-[#14B8A6]/50 text-[#14B8A6]"
+                  : "bg-[#131F35] border-[#1E3050] text-slate-400 hover:border-[#14B8A6]/30 hover:text-slate-200"
+              }`}
+            >
+              {c === "USD" ? "$ USD — Dollar" : "ل.ل LBP — Lebanese Pound"}
+            </button>
+          ))}
+        </div>
+        {localBase !== baseCurrency && (
+          <p className="mt-2 text-amber-400 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+            Warning: switching base currency will reinterpret all stored prices in the new currency unit without converting their values.
+          </p>
+        )}
+      </div>
+
+      <div>
+        <p className="text-white font-semibold text-sm mb-1">Exchange Rate</p>
+        <p className="text-slate-500 text-xs mb-3">How many Lebanese Pounds equal 1 US Dollar.</p>
+        <div className="flex items-center gap-3">
+          <span className="text-slate-400 text-sm whitespace-nowrap">1 USD =</span>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={rate}
+            onChange={e => setRate(e.target.value)}
+            className={iCls + " max-w-[160px] text-center tabular-nums"}
+            placeholder="89500"
+          />
+          <span className="text-slate-400 text-sm">ل.ل</span>
+        </div>
+        {parseInt(rate || "0") > 0 && (
+          <p className="mt-2 text-slate-500 text-xs">{usdExample}</p>
+        )}
+      </div>
+
+      <div>
+        <p className="text-white font-semibold text-sm mb-1">Show Secondary Currency</p>
+        <p className="text-slate-500 text-xs mb-3">Display the equivalent amount in the other currency alongside prices.</p>
+        <button
+          onClick={() => setLocalAlt(v => !v)}
+          className="flex items-center gap-2 cursor-pointer group"
+        >
+          <div className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${localAlt ? "bg-[#14B8A6]" : "bg-[#1A2A44] border border-[#1E3050]"}`}>
+            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${localAlt ? "left-4" : "left-0.5"}`} />
+          </div>
+          <span className="text-sm text-slate-400 group-hover:text-slate-300">
+            {localAlt ? "Enabled" : "Disabled"}
+          </span>
+        </button>
+      </div>
+
+      <div className="pt-2 border-t border-[#1E3050]">
+        <button
+          onClick={handleSave}
+          disabled={saving || parseInt(rate || "0") <= 0}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+        >
+          {saved ? <><Check size={14} /> Saved</> : saving ? "Saving…" : "Save Currency Settings"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 const TABS: { id: Tab; label: string; icon: typeof UserIcon }[] = [
-  { id: "users",      label: "Users",      icon: Users    },
-  { id: "categories", label: "Categories", icon: Tag      },
-  { id: "suppliers",  label: "Suppliers",  icon: Truck    },
+  { id: "store",      label: "Store",      icon: Store        },
+  { id: "users",      label: "Users",      icon: Users        },
+  { id: "categories", label: "Categories", icon: Tag          },
+  { id: "suppliers",  label: "Suppliers",  icon: Truck        },
+  { id: "currency",   label: "Currency",   icon: DollarSign   },
 ];
 
 export default function SettingsScreen({ user }: Props) {
-  const [tab, setTab] = useState<Tab>("users");
+  const [tab, setTab] = useState<Tab>("store");
 
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -433,9 +765,11 @@ export default function SettingsScreen({ user }: Props) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
+        {tab === "store"      && <StoreConfigTab />}
         {tab === "users"      && <UsersTab currentUser={user} />}
         {tab === "categories" && <CategoriesTab />}
         {tab === "suppliers"  && <SuppliersTab />}
+        {tab === "currency"   && <CurrencyTab />}
       </div>
     </div>
   );
