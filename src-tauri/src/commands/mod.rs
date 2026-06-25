@@ -4,6 +4,7 @@ pub mod customers;
 pub mod inventory;
 pub mod products;
 pub mod purchases;
+pub mod reports;
 pub mod sales;
 pub mod sessions;
 pub mod settings;

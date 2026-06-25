@@ -46,24 +46,24 @@ function CreateCustomerModal({ onClose, onCreate }: {
             <label className="block text-slate-400 text-xs mb-1.5">Full name <span className="text-red-400">*</span></label>
             <input value={name} onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === "Enter" && submit()}
-              className="w-full bg-[#0D1526] border border-[#1A2D45] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600 transition-colors"
+              className="w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
               placeholder="e.g. Ahmad Khalil" />
           </div>
           <div>
             <label className="block text-slate-400 text-xs mb-1.5">Phone</label>
             <input value={phone} onChange={e => setPhone(e.target.value)}
-              className="w-full bg-[#0D1526] border border-[#1A2D45] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600 transition-colors"
+              className="w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
               placeholder="+961 XX XXX XXX" />
           </div>
           <div>
             <label className="block text-slate-400 text-xs mb-1.5">Notes</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-              className="w-full bg-[#0D1526] border border-[#1A2D45] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600 transition-colors resize-none"
+              className="w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors resize-none"
               placeholder="Optional notes…" />
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-1">
-          <button onClick={onClose} className="px-4 py-2 text-slate-400 hover:text-white text-sm transition-colors cursor-pointer">
+          <button onClick={onClose} className="px-4 py-2 text-slate-400 hover:text-[var(--tx-base)] text-sm transition-colors cursor-pointer">
             Cancel
           </button>
           <button onClick={submit} disabled={busy}
@@ -203,25 +203,25 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
 
         {/* General payment form */}
         {paying && (
-          <div className="space-y-3 p-4 bg-[#0D1526] border border-[#1A2D45] rounded-xl">
-            <p className="text-white text-sm font-semibold">Record payment received</p>
+          <div className="space-y-3 p-4 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl">
+            <p className="text-[var(--tx-base)] text-sm font-semibold">Record payment received</p>
             <div className="flex gap-2">
               <input
                 type="number" min="0" step="0.01"
                 placeholder="Amount"
                 value={amount} onChange={e => setAmount(e.target.value)}
-                className="flex-1 bg-[#060E1A] border border-[#1A2D45] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-3 py-2 text-white text-sm placeholder-slate-600 transition-colors"
+                className="flex-1 bg-[var(--bg-panel)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-3 py-2 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
               />
               <input
                 type="text" placeholder="Note (optional)"
                 value={payNote} onChange={e => setPayNote(e.target.value)}
-                className="flex-1 bg-[#060E1A] border border-[#1A2D45] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-3 py-2 text-white text-sm placeholder-slate-600 transition-colors"
+                className="flex-1 bg-[var(--bg-panel)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-3 py-2 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
               />
             </div>
             {error && <p className="text-red-400 text-xs">{error}</p>}
             <div className="flex gap-2 justify-end">
               <button onClick={() => { setPaying(false); setError(""); }}
-                className="px-3 py-1.5 text-slate-400 hover:text-white text-xs transition-colors cursor-pointer">
+                className="px-3 py-1.5 text-slate-400 hover:text-[var(--tx-base)] text-xs transition-colors cursor-pointer">
                 Cancel
               </button>
               <button onClick={handleGeneralPayment} disabled={busy === "general"}
@@ -265,7 +265,7 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
                       <div key={sale.id}
                         className="flex items-center justify-between px-4 py-3 bg-amber-500/5 border border-amber-500/20 rounded-xl gap-3">
                         <div className="min-w-0">
-                          <p className="text-white text-xs font-semibold">
+                          <p className="text-[var(--tx-base)] text-xs font-semibold">
                             Sale #{sale.id}
                           </p>
                           <p className="text-slate-500 text-[10px] mt-0.5">
@@ -313,13 +313,13 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
                     const isPayment = entry.entry_type === "payment" || entry.entry_type === "reversal";
                     return (
                       <div key={entry.id}
-                        className="flex items-center justify-between px-3 py-2.5 bg-[#0D1526] border border-[#1A2D45] rounded-xl text-sm">
+                        className="flex items-center justify-between px-3 py-2.5 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl text-sm">
                         <div className="flex items-center gap-2.5 min-w-0">
                           {isPayment
                             ? <TrendingDown size={13} className="text-emerald-400 flex-shrink-0" />
                             : <TrendingUp   size={13} className="text-amber-400   flex-shrink-0" />}
                           <div className="min-w-0">
-                            <p className="text-white text-xs font-medium truncate">
+                            <p className="text-[var(--tx-base)] text-xs font-medium truncate">
                               {entry.entry_type === "credit"
                                 ? `Loan — Sale #${entry.sale_id ?? "—"}`
                                 : entry.entry_type === "payment"
@@ -351,9 +351,9 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
                 <div className="space-y-1.5 max-h-40 overflow-y-auto">
                   {sales.filter(s => s.status === "completed").map(sale => (
                     <div key={sale.id}
-                      className="flex items-center justify-between px-3 py-2.5 bg-[#0D1526] border border-[#1A2D45] rounded-xl">
+                      className="flex items-center justify-between px-3 py-2.5 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl">
                       <div>
-                        <p className="text-white text-xs font-medium">Sale #{sale.id}</p>
+                        <p className="text-[var(--tx-base)] text-xs font-medium">Sale #{sale.id}</p>
                         <p className="text-slate-500 text-[10px]">{new Date(sale.created_at).toLocaleString()}</p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -414,17 +414,17 @@ export default function CustomersScreen({ user }: Props) {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[#020817]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-deep)]">
 
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-[#0F1E38] space-y-4">
+      <div className="px-6 pt-6 pb-4 border-b border-[var(--bd-faint)] space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center">
               <Users size={17} className="text-[#14B8A6]" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-lg leading-none">Customers</h1>
+              <h1 className="text-[var(--tx-base)] font-bold text-lg leading-none">Customers</h1>
               <p className="text-slate-500 text-xs mt-0.5">
                 {customers.length} customer{customers.length !== 1 ? "s" : ""}
                 {pendingCount > 0 && ` · ${pendingCount} with outstanding loans`}
@@ -433,7 +433,7 @@ export default function CustomersScreen({ user }: Props) {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={load}
-              className="p-2 text-slate-500 hover:text-white hover:bg-[#0D1526] rounded-xl transition-colors cursor-pointer">
+              className="p-2 text-slate-500 hover:text-[var(--tx-base)] hover:bg-[var(--bg-base)] rounded-xl transition-colors cursor-pointer">
               <RefreshCw size={14} />
             </button>
             <button onClick={() => setCreating(true)}
@@ -459,7 +459,7 @@ export default function CustomersScreen({ user }: Props) {
         <div className="relative max-w-sm">
           <input type="text" placeholder="Search by name or phone…"
             value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full bg-[#0D1526] border border-[#1A2D45] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600 transition-colors"
+            className="w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
           />
           {search && (
             <button onClick={() => setSearch("")}
@@ -498,12 +498,12 @@ export default function CustomersScreen({ user }: Props) {
           <div className="divide-y divide-[#0F1E38]">
             {filtered.map(c => (
               <button key={c.id} onClick={() => setSelected(c)}
-                className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[#0D1526] transition-colors cursor-pointer text-left">
+                className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[var(--bg-base)] transition-colors cursor-pointer text-left">
                 <div className="w-9 h-9 rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-[#14B8A6] text-sm font-bold">{c.name.charAt(0).toUpperCase()}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium">{c.name}</p>
+                  <p className="text-[var(--tx-base)] text-sm font-medium">{c.name}</p>
                   <p className="text-slate-500 text-xs">{c.phone ?? "No phone"}</p>
                 </div>
                 {c.balance_due > 0 ? (

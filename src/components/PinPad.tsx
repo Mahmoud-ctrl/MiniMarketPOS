@@ -23,7 +23,7 @@ export default function PinPad({ onDigit, onBackspace, onSubmit, disabled, loadi
                 key={i}
                 onClick={onBackspace}
                 disabled={disabled}
-                className="h-14 rounded-xl bg-[#1A2A44] border border-[#1E3050] text-slate-300 hover:bg-[#243558] hover:border-[#2D4A70] hover:text-white active:scale-95 transition-all duration-100 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="h-14 rounded-xl bg-[var(--bg-raised)] border border-[var(--bd-base)] text-slate-300 hover:bg-[var(--bg-raised)] hover:border-[var(--bd-strong)] hover:text-[var(--tx-base)] active:scale-95 transition-all duration-100 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Delete size={18} />
               </button>
@@ -35,7 +35,7 @@ export default function PinPad({ onDigit, onBackspace, onSubmit, disabled, loadi
               key={i}
               onClick={() => onDigit(k)}
               disabled={disabled}
-              className="h-14 rounded-xl bg-[#1A2A44] border border-[#1E3050] text-white text-xl font-semibold hover:bg-[#1E3050] hover:border-[#14B8A6]/40 hover:text-[#14B8A6] active:scale-95 active:bg-[#14B8A6]/10 transition-all duration-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="h-14 rounded-xl bg-[var(--bg-raised)] border border-[var(--bd-base)] text-[var(--tx-base)] text-xl font-semibold hover:bg-[#1E3050] hover:border-[#14B8A6]/40 hover:text-[#14B8A6] active:scale-95 active:bg-[#14B8A6]/10 transition-all duration-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {k}
             </button>

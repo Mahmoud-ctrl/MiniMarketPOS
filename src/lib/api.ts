@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { CashSession, Category, Customer, CustomerLedgerEntry, CustomerWithBalance, PriceTier, Product, ProductStock, Purchase, PurchaseWithItems, Sale, SaleWithItems, Setting, Supplier, User } from "../types";
+import { CashierStatsRow, CashSession, Category, Customer, CustomerLedgerEntry, CustomerWithBalance, DailySalesRow, PriceTier, Product, ProductStock, Purchase, PurchaseWithItems, Sale, SaleWithItems, SalesSummary, Setting, Supplier, TopCustomerRow, TopProductRow, User } from "../types";
 
 interface LoginResult { user: User }
 
@@ -232,6 +232,22 @@ export const api = {
   getActiveSession: (cashierId: number) =>
     invoke<CashSession | null>("get_active_session", { cashierId }),
 
+  // ── Reports ───────────────────────────────────────────────────
+  getSalesSummary: (dateFrom?: string | null, dateTo?: string | null) =>
+    invoke<SalesSummary>("get_sales_summary", { dateFrom: dateFrom ?? null, dateTo: dateTo ?? null }),
+
+  getDailySales: (dateFrom?: string | null, dateTo?: string | null) =>
+    invoke<DailySalesRow[]>("get_daily_sales", { dateFrom: dateFrom ?? null, dateTo: dateTo ?? null }),
+
+  getTopProducts: (dateFrom?: string | null, dateTo?: string | null, limit?: number | null) =>
+    invoke<TopProductRow[]>("get_top_products", { dateFrom: dateFrom ?? null, dateTo: dateTo ?? null, limit: limit ?? null }),
+
+  getTopCustomers: (dateFrom?: string | null, dateTo?: string | null, limit?: number | null) =>
+    invoke<TopCustomerRow[]>("get_top_customers", { dateFrom: dateFrom ?? null, dateTo: dateTo ?? null, limit: limit ?? null }),
+
+  getCashierStats: (dateFrom?: string | null, dateTo?: string | null) =>
+    invoke<CashierStatsRow[]>("get_cashier_stats", { dateFrom: dateFrom ?? null, dateTo: dateTo ?? null }),
+
   // ── Customers ─────────────────────────────────────────────────
   getCustomers: () =>
     invoke<CustomerWithBalance[]>("get_customers"),
@@ -241,6 +257,15 @@ export const api = {
 
   createCustomer: (name: string, phone?: string | null, notes?: string | null) =>
     invoke<Customer>("create_customer", { name, phone: phone ?? null, notes: notes ?? null }),
+
+  createCustomerQuick: (name: string, phone?: string | null) =>
+    invoke<Customer>("create_customer_quick", { name, phone: phone ?? null }),
+
+  updateCustomer: (id: number, name: string, phone?: string | null, email?: string | null, notes?: string | null) =>
+    invoke<Customer>("update_customer", { id, name, phone: phone ?? null, email: email ?? null, notes: notes ?? null }),
+
+  deactivateCustomer: (id: number) =>
+    invoke<Customer>("deactivate_customer", { id }),
 
   getCustomerLedger: (customerId: number) =>
     invoke<CustomerLedgerEntry[]>("get_customer_ledger", { customerId }),

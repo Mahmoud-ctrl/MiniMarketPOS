@@ -92,7 +92,7 @@ function Field({ label, children, required }: { label: string; children: React.R
   );
 }
 
-const iCls = "w-full px-3 py-2 bg-[#131F35] border border-[#1E3050] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-white text-sm placeholder-slate-600 transition-colors";
+const iCls = "w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors";
 const selCls = iCls + " cursor-pointer";
 
 // ── Toggle ─────────────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
       onClick={() => onChange(!checked)}
       className="flex items-center gap-2 cursor-pointer group"
     >
-      <div className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${checked ? "bg-[#14B8A6]" : "bg-[#1A2A44] border border-[#1E3050]"}`}>
+      <div className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${checked ? "bg-[#14B8A6]" : "bg-[var(--bg-raised)] border border-[var(--bd-base)]"}`}>
         <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${checked ? "left-4" : "left-0.5"}`} />
       </div>
       <span className="text-sm text-slate-400 group-hover:text-slate-300">{label}</span>
@@ -186,7 +186,7 @@ function ProductFormModal({
                 <button
                   type="button"
                   onClick={() => setF(p => ({ ...p, barcode: generateEAN13() }))}
-                  className="flex-shrink-0 px-3 py-2 bg-[#131F35] border border-[#1E3050] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="flex-shrink-0 px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   <RefreshCw size={12} /> Gen
                 </button>
@@ -227,8 +227,8 @@ function ProductFormModal({
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Pricing ({symbol})</p>
 
           {showStrip && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 bg-[#0D1526] border border-[#1E3050] rounded-xl text-xs">
-              <span className="text-slate-400">Cost <strong className="text-white">{fmtNum(cost)}</strong></span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl text-xs">
+              <span className="text-slate-400">Cost <strong className="text-[var(--tx-base)]">{fmtNum(cost)}</strong></span>
               <span className="text-slate-700">·</span>
               <span className="text-slate-400">Retail <strong className="text-[#14B8A6]">{fmtNum(retail)}</strong></span>
               <span className="text-slate-700">·</span>
@@ -285,9 +285,9 @@ function ProductFormModal({
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#1E3050]">
+        <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
           <button type="button" onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">
+            className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">
             Cancel
           </button>
           <button type="submit" disabled={saving}
@@ -337,8 +337,8 @@ function AdjustModal({
   return (
     <Modal title="Adjust Stock" onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
-        <div className="bg-[#131F35] border border-[#1E3050] rounded-xl px-4 py-3">
-          <p className="text-white font-medium">{product.name}</p>
+        <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-4 py-3">
+          <p className="text-[var(--tx-base)] font-medium">{product.name}</p>
           <p className={`text-lg font-bold tabular mt-0.5 ${stockColor(product.stock_qty, product.min_stock)}`}>
             {product.stock_qty} {product.unit} in stock
           </p>
@@ -359,13 +359,13 @@ function AdjustModal({
             <div className="flex gap-1 flex-wrap">
               {presets.map(p => (
                 <button key={p} type="button" onClick={() => setDelta(String(p))}
-                  className="px-2.5 py-1 bg-[#131F35] border border-[#1E3050] hover:border-[#14B8A6]/40 text-slate-300 text-xs rounded-lg transition-colors cursor-pointer">
+                  className="px-2.5 py-1 bg-[var(--bg-card)] border border-[var(--bd-base)] hover:border-[#14B8A6]/40 text-slate-300 text-xs rounded-lg transition-colors cursor-pointer">
                   +{p}
                 </button>
               ))}
               {presets.map(p => (
                 <button key={-p} type="button" onClick={() => setDelta(String(-p))}
-                  className="px-2.5 py-1 bg-[#131F35] border border-[#1E3050] hover:border-red-500/40 text-slate-300 text-xs rounded-lg transition-colors cursor-pointer">
+                  className="px-2.5 py-1 bg-[var(--bg-card)] border border-[var(--bd-base)] hover:border-red-500/40 text-slate-300 text-xs rounded-lg transition-colors cursor-pointer">
                   -{p}
                 </button>
               ))}
@@ -380,8 +380,8 @@ function AdjustModal({
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#1E3050]">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">Cancel</button>
+        <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
           <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
             {saving ? "Saving…" : "Apply"}
           </button>
@@ -447,9 +447,9 @@ export default function InventoryScreen({ user }: Props) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-[#1E3050] bg-[#0D1526]">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--bd-base)] bg-[var(--bg-base)]">
         <div>
-          <h1 className="text-white font-semibold text-base">Inventory</h1>
+          <h1 className="text-[var(--tx-base)] font-semibold text-base">Inventory</h1>
           <p className="text-slate-500 text-xs">{stocks.length} products</p>
         </div>
         <div className="flex-1" />
@@ -458,7 +458,7 @@ export default function InventoryScreen({ user }: Props) {
         {lowCount > 0 && (
           <button
             onClick={() => setShowLow(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${showLow ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-[#131F35] border border-[#1E3050] text-amber-400 hover:border-amber-500/30"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${showLow ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-[var(--bg-card)] border border-[var(--bd-base)] text-amber-400 hover:border-amber-500/30"}`}
           >
             <AlertTriangle size={12} />
             {lowCount} low stock
@@ -471,11 +471,11 @@ export default function InventoryScreen({ user }: Props) {
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search…"
-            className="w-full pl-8 pr-3 py-1.5 bg-[#131F35] border border-[#1E3050] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-white text-sm placeholder-slate-600 transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
           />
         </div>
 
-        <button onClick={load} className="w-8 h-8 rounded-xl bg-[#131F35] border border-[#1E3050] text-slate-500 hover:text-white flex items-center justify-center transition-colors cursor-pointer">
+        <button onClick={load} className="w-8 h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--bd-base)] text-slate-500 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
 
@@ -491,7 +491,7 @@ export default function InventoryScreen({ user }: Props) {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <table className="w-full text-sm min-w-[900px]">
-          <thead className="sticky top-0 bg-[#0A1020] border-b border-[#1E3050] z-10">
+          <thead className="sticky top-0 bg-[var(--bg-base)] border-b border-[var(--bd-base)] z-10">
             <tr>
               {["Product", "Category", "Stock", "Cost", "Retail", "Status", ""].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -503,10 +503,10 @@ export default function InventoryScreen({ user }: Props) {
           <tbody>
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => (
-                <tr key={i} className="border-b border-[#1E3050]/40">
+                <tr key={i} className="border-b border-[var(--bd-base)]/40">
                   {Array.from({ length: 7 }).map((_, j) => (
                     <td key={j} className="px-4 py-3">
-                      <div className="h-4 bg-[#131F35] rounded animate-pulse" />
+                      <div className="h-4 bg-[var(--bg-card)] rounded animate-pulse" />
                     </td>
                   ))}
                 </tr>
@@ -519,9 +519,9 @@ export default function InventoryScreen({ user }: Props) {
                 </td>
               </tr>
             ) : filtered.map(p => (
-              <tr key={p.product_id} className="border-b border-[#1E3050]/40 hover:bg-[#131F35]/40 transition-colors group">
+              <tr key={p.product_id} className="border-b border-[var(--bd-base)]/40 hover:bg-[var(--bg-card)]/40 transition-colors group">
                 <td className="px-4 py-3">
-                  <div className="text-white font-medium leading-tight">{p.name}</div>
+                  <div className="text-[var(--tx-base)] font-medium leading-tight">{p.name}</div>
                   <div className="text-slate-600 text-xs mt-0.5 tabular">
                     {p.barcode ?? p.internal_code ?? "—"}
                   </div>
@@ -554,19 +554,19 @@ export default function InventoryScreen({ user }: Props) {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => setAdjusting(p)} title="Adjust stock"
-                      className="w-7 h-7 rounded-lg bg-[#1A2A44] hover:bg-[#243558] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer">
+                      className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
                       <Plus size={13} />
                     </button>
                     <button onClick={() => setEditing(p)} title="Edit product"
-                      className="w-7 h-7 rounded-lg bg-[#1A2A44] hover:bg-[#243558] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer">
+                      className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
                       <Pencil size={13} />
                     </button>
                     <button onClick={() => toggleFreeze(p)} title={p.is_frozen ? "Unfreeze" : "Freeze"}
-                      className="w-7 h-7 rounded-lg bg-[#1A2A44] hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 flex items-center justify-center transition-colors cursor-pointer">
+                      className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 flex items-center justify-center transition-colors cursor-pointer">
                       <Snowflake size={13} />
                     </button>
                     <button onClick={() => setConfirmDeact(p)} title="Deactivate"
-                      className="w-7 h-7 rounded-lg bg-[#1A2A44] hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer">
+                      className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer">
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -601,10 +601,10 @@ export default function InventoryScreen({ user }: Props) {
         <Modal title="Deactivate Product" onClose={() => setConfirmDeact(null)}>
           <div className="p-6 space-y-4">
             <p className="text-slate-300 text-sm">
-              Deactivate <strong className="text-white">{confirmDeact.name}</strong>? It will no longer appear in the POS.
+              Deactivate <strong className="text-[var(--tx-base)]">{confirmDeact.name}</strong>? It will no longer appear in the POS.
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setConfirmDeact(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">Cancel</button>
+              <button onClick={() => setConfirmDeact(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
               <button onClick={handleDeactivate} className="px-4 py-2 bg-red-500/15 hover:bg-red-500/25 text-red-400 font-medium text-sm rounded-xl border border-red-500/20 transition-colors cursor-pointer">Deactivate</button>
             </div>
           </div>

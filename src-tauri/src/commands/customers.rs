@@ -71,6 +71,65 @@ pub async fn create_customer(
 }
 
 #[tauri::command]
+pub async fn create_customer_quick(
+    state: State<'_, AppState>,
+    name:  String,
+    phone: Option<String>,
+) -> Result<Customer, AppError> {
+    let phone_val = phone.filter(|p| !p.trim().is_empty());
+    let row = sqlx::query_as::<_, Customer>(
+        "INSERT INTO customers (name, phone) VALUES ($1, $2) RETURNING id, name, phone, email, notes, points, is_active, created_at",
+    )
+    .bind(name.trim())
+    .bind(phone_val.as_deref())
+    .fetch_one(&state.db)
+    .await?;
+    Ok(row)
+}
+
+#[tauri::command]
+pub async fn update_customer(
+    state: State<'_, AppState>,
+    id:    i64,
+    name:  String,
+    phone: Option<String>,
+    email: Option<String>,
+    notes: Option<String>,
+) -> Result<Customer, AppError> {
+    let phone_val = phone.filter(|p| !p.trim().is_empty());
+    let email_val = email.filter(|e| !e.trim().is_empty());
+    let notes_val = notes.filter(|n| !n.trim().is_empty());
+    let row = sqlx::query_as::<_, Customer>(
+        r#"UPDATE customers
+           SET name = $1, phone = $2, email = $3, notes = $4
+           WHERE id = $5
+           RETURNING id, name, phone, email, notes, points, is_active, created_at"#,
+    )
+    .bind(name.trim())
+    .bind(phone_val.as_deref())
+    .bind(email_val.as_deref())
+    .bind(notes_val.as_deref())
+    .bind(id)
+    .fetch_one(&state.db)
+    .await?;
+    Ok(row)
+}
+
+#[tauri::command]
+pub async fn deactivate_customer(
+    state: State<'_, AppState>,
+    id:    i64,
+) -> Result<Customer, AppError> {
+    let row = sqlx::query_as::<_, Customer>(
+        "UPDATE customers SET is_active = false WHERE id = $1 RETURNING id, name, phone, email, notes, points, is_active, created_at",
+    )
+    .bind(id)
+    .fetch_one(&state.db)
+    .await?;
+    Ok(row)
+}
+
+#[tauri::command]
 pub async fn get_customer_ledger(
     state:       State<'_, AppState>,
     customer_id: i64,

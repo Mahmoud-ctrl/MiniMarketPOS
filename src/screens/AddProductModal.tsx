@@ -27,9 +27,9 @@ function parseDbError(err: unknown): string {
   return msg;
 }
 
-const iCls  = "w-full px-3 py-2 bg-[#131F35] border border-[#1E3050] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-white text-sm placeholder-slate-600 transition-colors";
+const iCls  = "w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors";
 const selCls = iCls + " cursor-pointer";
-const roiCls = "w-full px-3 py-2 bg-[#0D1526] border border-[#1E3050] rounded-xl text-slate-400 text-sm";
+const roiCls = "w-full px-3 py-2 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl text-slate-400 text-sm";
 
 function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
@@ -45,7 +45,7 @@ function Field({ label, children, required }: { label: string; children: React.R
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <button type="button" onClick={() => onChange(!checked)} className="flex items-center gap-2 cursor-pointer group">
-      <div className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${checked ? "bg-[#14B8A6]" : "bg-[#1A2A44] border border-[#1E3050]"}`}>
+      <div className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${checked ? "bg-[#14B8A6]" : "bg-[var(--bg-raised)] border border-[var(--bd-base)]"}`}>
         <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${checked ? "left-4" : "left-0.5"}`} />
       </div>
       <span className="text-sm text-slate-400 group-hover:text-slate-300">{label}</span>
@@ -61,7 +61,7 @@ function BarcodeInput({ value, onChange }: { value: string; onChange: (v: string
         type="button"
         onClick={() => onChange(generateEAN13())}
         title="Auto-generate EAN-13"
-        className="flex-shrink-0 px-3 py-2 bg-[#131F35] border border-[#1E3050] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5"
+        className="flex-shrink-0 px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5"
       >
         <RefreshCw size={12} /> Gen
       </button>
@@ -92,8 +92,8 @@ function BackBtn({ onClick }: { onClick: () => void }) {
 
 function FormFooter({ onClose, saving, label }: { onClose: () => void; saving: boolean; label: string }) {
   return (
-    <div className="flex justify-end gap-2 pt-3 border-t border-[#1E3050]">
-      <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">
+    <div className="flex justify-end gap-2 pt-3 border-t border-[var(--bd-base)]">
+      <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">
         Cancel
       </button>
       <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
@@ -118,13 +118,13 @@ function ModePicker({ onSelect }: { onSelect: (m: Mode) => void }) {
           key={id}
           type="button"
           onClick={() => onSelect(id)}
-          className="w-full flex items-start gap-4 p-4 bg-[#131F35] border border-[#1E3050] hover:border-[#14B8A6]/40 hover:bg-[#1A2A44] rounded-2xl text-left transition-all group cursor-pointer"
+          className="w-full flex items-start gap-4 p-4 bg-[var(--bg-card)] border border-[var(--bd-base)] hover:border-[#14B8A6]/40 hover:bg-[var(--bg-raised)] rounded-2xl text-left transition-all group cursor-pointer"
         >
           <div className="w-9 h-9 rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[#14B8A6]/20 transition-colors">
             <Icon size={17} className="text-[#14B8A6]" />
           </div>
           <div>
-            <p className="text-white font-medium text-sm">{label}</p>
+            <p className="text-[var(--tx-base)] font-medium text-sm">{label}</p>
             <p className="text-slate-500 text-xs mt-0.5">{desc}</p>
           </div>
         </button>
@@ -485,7 +485,7 @@ function BoxImportForm({ categories, suppliers, user, onBack, onClose, onSaved }
             )}
           </div>
 
-          <div className="p-3 bg-[#131F35] border border-[#1E3050] rounded-xl space-y-2">
+          <div className="p-3 bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl space-y-2">
             <Toggle checked={s1.create_box_product} onChange={v => setS1(p => ({ ...p, create_box_product: v }))} label="Also sell as a box product (for wholesale)" />
             {s1.create_box_product && (
               <p className="text-xs text-slate-500 ml-11">
@@ -495,10 +495,10 @@ function BoxImportForm({ categories, suppliers, user, onBack, onClose, onSaved }
           </div>
 
           {boxCost > 0 && (
-            <div className="flex items-center gap-4 px-4 py-3 bg-[#0D1526] border border-[#1E3050] rounded-xl text-xs text-slate-400">
+            <div className="flex items-center gap-4 px-4 py-3 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl text-xs text-slate-400">
               <span>Cost/unit: <strong className="text-[#14B8A6]">{fmtNum(costPerUnit)}</strong></span>
               <span className="text-slate-600">·</span>
-              <span>Total units: <strong className="text-white">{totalUnits}</strong></span>
+              <span>Total units: <strong className="text-[var(--tx-base)]">{totalUnits}</strong></span>
             </div>
           )}
         </div>
@@ -508,7 +508,7 @@ function BoxImportForm({ categories, suppliers, user, onBack, onClose, onSaved }
       {step === 2 && (
         <div className="space-y-4">
           {/* Live strip */}
-          <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#0D1526] border border-[#1E3050] rounded-xl text-xs">
+          <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl text-xs">
             <span className="text-slate-400">Cost/unit: <strong className="text-[#14B8A6]">{fmtNum(costPerUnit)}</strong></span>
             {finalRetail > 0 && (
               <>
@@ -521,7 +521,7 @@ function BoxImportForm({ categories, suppliers, user, onBack, onClose, onSaved }
           </div>
 
           {/* Price / Margin toggle */}
-          <div className="flex bg-[#131F35] border border-[#1E3050] rounded-xl p-1 w-fit">
+          <div className="flex bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl p-1 w-fit">
             {(["price", "margin"] as const).map(m => (
               <button key={m} type="button" onClick={() => switchMode(m)}
                 className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${s2.pricing_mode === m ? "bg-[#14B8A6] text-slate-900" : "text-slate-500 hover:text-slate-300"}`}>
@@ -590,11 +590,11 @@ function BoxImportForm({ categories, suppliers, user, onBack, onClose, onSaved }
           )}
 
           {/* Summary */}
-          <div className="p-4 bg-[#0D1526] border border-[#1E3050] rounded-xl space-y-2 text-xs">
+          <div className="p-4 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl space-y-2 text-xs">
             <p className="text-slate-500 font-medium uppercase tracking-wider mb-2">Summary</p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1">
               <span className="text-slate-500">Product</span>
-              <span className="text-white">{s1.name}</span>
+              <span className="text-[var(--tx-base)]">{s1.name}</span>
               <span className="text-slate-500">Cost / unit</span>
               <span className="text-slate-300">{fmtNum(costPerUnit)}</span>
               <span className="text-slate-500">Retail / unit</span>
@@ -606,7 +606,7 @@ function BoxImportForm({ categories, suppliers, user, onBack, onClose, onSaved }
               {s1.create_box_product && (
                 <>
                   <span className="text-slate-500">Box product</span>
-                  <span className="text-white">{s1.name} ×{unitsPerBox}</span>
+                  <span className="text-[var(--tx-base)]">{s1.name} ×{unitsPerBox}</span>
                 </>
               )}
             </div>
@@ -617,8 +617,8 @@ function BoxImportForm({ categories, suppliers, user, onBack, onClose, onSaved }
       {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
 
       {/* Navigation */}
-      <div className="flex justify-between gap-2 mt-5 pt-4 border-t border-[#1E3050]">
-        <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">
+      <div className="flex justify-between gap-2 mt-5 pt-4 border-t border-[var(--bd-base)]">
+        <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">
           Cancel
         </button>
         {step < 3 ? (

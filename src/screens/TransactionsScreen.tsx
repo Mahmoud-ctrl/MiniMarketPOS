@@ -110,7 +110,7 @@ function TransactionDetail({
           <>
             {/* Meta chips */}
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="px-2.5 py-1 rounded-full bg-[#131F35] border border-[#1E3050] text-slate-400">
+              <span className="px-2.5 py-1 rounded-full bg-[var(--bg-card)] border border-[var(--bd-base)] text-slate-400">
                 {new Date(detail.created_at).toLocaleString()}
               </span>
               <span className={`px-2.5 py-1 rounded-full font-medium border ${
@@ -122,7 +122,7 @@ function TransactionDetail({
               }`}>
                 {detail.status}
               </span>
-              <span className="px-2.5 py-1 rounded-full bg-[#131F35] border border-[#1E3050] text-slate-400 capitalize">
+              <span className="px-2.5 py-1 rounded-full bg-[var(--bg-card)] border border-[var(--bd-base)] text-slate-400 capitalize">
                 {detail.payment_method}
               </span>
               {detail.customer_name && (
@@ -136,9 +136,9 @@ function TransactionDetail({
             {/* Items */}
             <div className="space-y-1.5 max-h-56 overflow-y-auto">
               {detail.items.map(item => (
-                <div key={item.id} className="flex items-center justify-between text-sm px-3 py-2.5 bg-[#0D1526] border border-[#1A2D45] rounded-xl">
+                <div key={item.id} className="flex items-center justify-between text-sm px-3 py-2.5 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl">
                   <div>
-                    <span className="text-white font-medium">{item.product_name}</span>
+                    <span className="text-[var(--tx-base)] font-medium">{item.product_name}</span>
                     <span className="text-slate-500 text-xs ml-2">× {item.quantity}</span>
                     {item.discount > 0 && (
                       <span className="text-emerald-400 text-xs ml-2">−{fmt(item.discount)}</span>
@@ -150,7 +150,7 @@ function TransactionDetail({
             </div>
 
             {/* Totals */}
-            <div className="space-y-1.5 pt-2 border-t border-[#1E3050] text-sm">
+            <div className="space-y-1.5 pt-2 border-t border-[var(--bd-base)] text-sm">
               {detail.discount > 0 && (
                 <div className="flex justify-between text-emerald-400">
                   <span>Discount</span>
@@ -163,7 +163,7 @@ function TransactionDetail({
                   <span className="tabular-nums">{fmt(detail.tax)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-white font-bold text-base pt-1 border-t border-[#1E3050]">
+              <div className="flex justify-between text-[var(--tx-base)] font-bold text-base pt-1 border-t border-[var(--bd-base)]">
                 <span>Total</span>
                 <div className="text-right">
                   <div className="tabular-nums">{fmt(detail.total_amount)}</div>
@@ -196,10 +196,10 @@ function TransactionDetail({
             )}
 
             {/* Actions */}
-            <div className="flex gap-2 pt-1 border-t border-[#1E3050]">
+            <div className="flex gap-2 pt-1 border-t border-[var(--bd-base)]">
               <button
                 onClick={handleReprint}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#131F35] hover:bg-[#1A2A44] border border-[#1E3050] text-slate-300 text-sm font-medium rounded-xl transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-card)] hover:bg-[var(--bg-raised)] border border-[var(--bd-base)] text-slate-300 text-sm font-medium rounded-xl transition-colors cursor-pointer"
               >
                 <Printer size={14} /> Reprint
               </button>
@@ -283,16 +283,16 @@ export default function TransactionsScreen({ user }: Props) {
   ];
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[#020817]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-deep)]">
 
       {/* ── Header + filters ────────────────────────────────────────── */}
-      <div className="px-6 pt-6 pb-4 space-y-4 border-b border-[#0F1E38]">
+      <div className="px-6 pt-6 pb-4 space-y-4 border-b border-[var(--bd-faint)]">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center">
             <ScrollText size={17} className="text-[#14B8A6]" />
           </div>
           <div>
-            <h1 className="text-white font-bold text-lg leading-none">Transactions</h1>
+            <h1 className="text-[var(--tx-base)] font-bold text-lg leading-none">Transactions</h1>
             <p className="text-slate-500 text-xs mt-0.5">Search, reprint, or void sales</p>
           </div>
         </div>
@@ -306,7 +306,7 @@ export default function TransactionsScreen({ user }: Props) {
             placeholder="Scan or type product barcode…"
             value={barcode}
             onChange={e => setBarcode(e.target.value)}
-            className="w-full bg-[#0D1526] border border-[#1A2D45] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl pl-10 pr-9 py-2.5 text-white text-sm placeholder-slate-600 transition-colors"
+            className="w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl pl-10 pr-9 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
           />
           {barcode && (
             <button
@@ -321,7 +321,7 @@ export default function TransactionsScreen({ user }: Props) {
         {/* Filter rows */}
         <div className="flex flex-wrap gap-3">
           {/* Date range */}
-          <div className="flex bg-[#0D1526] border border-[#1A2D45] rounded-xl p-1 gap-0.5">
+          <div className="flex bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl p-1 gap-0.5">
             {DATE_TABS.map(t => (
               <button key={t.id} onClick={() => setRange(t.id)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${range === t.id ? "bg-[#14B8A6] text-slate-900" : "text-slate-500 hover:text-slate-300"}`}>
@@ -331,7 +331,7 @@ export default function TransactionsScreen({ user }: Props) {
           </div>
 
           {/* Status */}
-          <div className="flex bg-[#0D1526] border border-[#1A2D45] rounded-xl p-1 gap-0.5">
+          <div className="flex bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl p-1 gap-0.5">
             {STATUS_TABS.map(t => (
               <button key={t.id} onClick={() => setStatusF(t.id)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${statusF === t.id ? "bg-[#14B8A6] text-slate-900" : "text-slate-500 hover:text-slate-300"}`}>
@@ -341,7 +341,7 @@ export default function TransactionsScreen({ user }: Props) {
           </div>
 
           {/* Payment method */}
-          <div className="flex bg-[#0D1526] border border-[#1A2D45] rounded-xl p-1 gap-0.5">
+          <div className="flex bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl p-1 gap-0.5">
             {PAY_TABS.map(t => (
               <button key={t.id} onClick={() => setPayF(t.id)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${payF === t.id ? "bg-[#14B8A6] text-slate-900" : "text-slate-500 hover:text-slate-300"}`}>
@@ -373,14 +373,14 @@ export default function TransactionsScreen({ user }: Props) {
                 <button
                   key={sale.id}
                   onClick={() => setSelected(sale.id)}
-                  className="w-full flex items-center gap-4 px-6 py-3.5 hover:bg-[#0D1526] transition-colors cursor-pointer text-left"
+                  className="w-full flex items-center gap-4 px-6 py-3.5 hover:bg-[var(--bg-base)] transition-colors cursor-pointer text-left"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-[#0D1526] border border-[#1A2D45] flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-[var(--bg-base)] border border-[var(--bd-base)] flex items-center justify-center flex-shrink-0">
                     <Icon size={15} className={isVoid ? "text-slate-700" : "text-slate-400"} />
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium ${isVoid ? "text-slate-600" : "text-white"}`}>
+                    <p className={`text-sm font-medium ${isVoid ? "text-slate-600" : "text-[var(--tx-base)]"}`}>
                       Sale #{sale.id}
                       {sale.customer_name && (
                         <span className="text-[#14B8A6] text-xs font-normal ml-2">· {sale.customer_name}</span>
@@ -418,7 +418,7 @@ export default function TransactionsScreen({ user }: Props) {
                 <button
                   onClick={() => fetchSales(false)}
                   disabled={loading}
-                  className="px-6 py-2.5 bg-[#0D1526] hover:bg-[#131F35] border border-[#1A2D45] text-slate-400 text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 bg-[var(--bg-base)] hover:bg-[var(--bg-card)] border border-[var(--bd-base)] text-slate-400 text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {loading ? "Loading…" : "Load more"}
                 </button>

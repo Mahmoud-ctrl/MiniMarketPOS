@@ -37,16 +37,16 @@ export default function CashModal({ total, onConfirm, onCancel }: Props) {
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4" onClick={onCancel}>
       <div
-        className="bg-[#0B1628] border border-[#1E3050] rounded-2xl w-full max-w-sm shadow-2xl"
+        className="bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-2xl w-full max-w-sm shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1E3050]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--bd-base)]">
           <div className="flex items-center gap-2">
             <Banknote size={17} className="text-[#14B8A6]" />
-            <span className="text-white font-bold text-sm">Cash Payment</span>
+            <span className="text-[var(--tx-base)] font-bold text-sm">Cash Payment</span>
           </div>
-          <button onClick={onCancel} className="text-slate-500 hover:text-white transition-colors cursor-pointer">
+          <button onClick={onCancel} className="text-slate-500 hover:text-[var(--tx-base)] transition-colors cursor-pointer">
             <X size={16} />
           </button>
         </div>
@@ -54,9 +54,9 @@ export default function CashModal({ total, onConfirm, onCancel }: Props) {
         <div className="p-5 space-y-4">
 
           {/* Total due */}
-          <div className="bg-[#060E1A] border border-[#0F1E38] rounded-xl px-4 py-4 text-center space-y-1">
+          <div className="bg-[var(--bg-panel)] border border-[var(--bd-faint)] rounded-xl px-4 py-4 text-center space-y-1">
             <p className="text-slate-500 text-xs">Total due</p>
-            <p className="text-white font-bold text-3xl tabular-nums">{fmt(total)}</p>
+            <p className="text-[var(--tx-base)] font-bold text-3xl tabular-nums">{fmt(total)}</p>
             <p className="text-slate-500 text-sm tabular-nums">{fmtAlt(total)}</p>
             <p className="text-slate-700 text-[11px] mt-1">
               Rate: $1 = ل.ل {exchangeRate.toLocaleString("en-US")}
@@ -77,7 +77,7 @@ export default function CashModal({ total, onConfirm, onCancel }: Props) {
                 value={paidPrimary}
                 onChange={e => setPaidPrimary(e.target.value)}
                 autoFocus
-                className="w-full bg-[#131F35] border border-[#1E3050] focus:border-[#14B8A6]/70 focus:outline-none rounded-xl px-4 py-3 text-white text-xl font-bold placeholder-slate-700 tabular-nums transition-colors"
+                className="w-full bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/70 focus:outline-none rounded-xl px-4 py-3 text-[var(--tx-base)] text-xl font-bold placeholder-slate-700 tabular-nums transition-colors"
               />
             </div>
             <div>
@@ -91,7 +91,7 @@ export default function CashModal({ total, onConfirm, onCancel }: Props) {
                 placeholder="0"
                 value={paidSecondary}
                 onChange={e => setPaidSecondary(e.target.value)}
-                className="w-full bg-[#131F35] border border-[#1E3050] focus:border-[#14B8A6]/70 focus:outline-none rounded-xl px-4 py-3 text-white text-xl font-bold placeholder-slate-700 tabular-nums transition-colors"
+                className="w-full bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/70 focus:outline-none rounded-xl px-4 py-3 text-[var(--tx-base)] text-xl font-bold placeholder-slate-700 tabular-nums transition-colors"
               />
             </div>
           </div>
@@ -106,7 +106,7 @@ export default function CashModal({ total, onConfirm, onCancel }: Props) {
               <p className={`text-xs font-semibold mb-2 ${isPending ? "text-amber-400" : "text-emerald-400"}`}>
                 {isPending ? "Still owed to customer" : "Return to customer"}
               </p>
-              <div className={`text-3xl font-bold tabular-nums ${isPending ? "text-amber-400" : "text-white"}`}>
+              <div className={`text-3xl font-bold tabular-nums ${isPending ? "text-amber-400" : "text-[var(--tx-base)]"}`}>
                 {fmt(Math.abs(change))}
               </div>
               <div className={`text-base tabular-nums mt-1 ${isPending ? "text-amber-400/70" : "text-slate-400"}`}>
@@ -119,7 +119,7 @@ export default function CashModal({ total, onConfirm, onCancel }: Props) {
           <div className="flex gap-2.5 pt-1">
             <button
               onClick={onCancel}
-              className="px-5 py-3 bg-[#131F35] hover:bg-[#1A2A44] border border-[#1E3050] text-slate-400 hover:text-white text-sm font-medium rounded-xl transition-colors cursor-pointer"
+              className="px-5 py-3 bg-[var(--bg-card)] hover:bg-[var(--bg-raised)] border border-[var(--bd-base)] text-slate-400 hover:text-[var(--tx-base)] text-sm font-medium rounded-xl transition-colors cursor-pointer"
             >
               Cancel
             </button>

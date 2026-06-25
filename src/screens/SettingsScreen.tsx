@@ -10,7 +10,7 @@ interface Props { user: User }
 
 type Tab = "store" | "users" | "categories" | "suppliers" | "currency";
 
-const iCls   = "w-full px-3 py-2 bg-[#131F35] border border-[#1E3050] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-white text-sm placeholder-slate-600 transition-colors";
+const iCls   = "w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors";
 const selCls = iCls + " cursor-pointer";
 
 function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
@@ -53,12 +53,12 @@ function UsersTab({ currentUser }: { currentUser: User }) {
 
       <div className="space-y-2">
         {users.map(u => (
-          <div key={u.id} className="flex items-center gap-3 bg-[#131F35] border border-[#1E3050] rounded-xl px-4 py-3">
-            <div className="w-9 h-9 rounded-full bg-[#1A2A44] text-slate-300 font-bold text-sm flex items-center justify-center flex-shrink-0">
+          <div key={u.id} className="flex items-center gap-3 bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-4 py-3">
+            <div className="w-9 h-9 rounded-full bg-[var(--bg-raised)] text-slate-300 font-bold text-sm flex items-center justify-center flex-shrink-0">
               {u.full_name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-white font-medium text-sm">{u.full_name}</div>
+              <div className="text-[var(--tx-base)] font-medium text-sm">{u.full_name}</div>
               <div className="text-slate-500 text-xs">@{u.username}</div>
             </div>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${roleStyle[u.role]}`}>
@@ -66,7 +66,7 @@ function UsersTab({ currentUser }: { currentUser: User }) {
             </span>
             {(currentUser.role === "admin" || currentUser.id === u.id) && (
               <button onClick={() => setPinTarget(u)}
-                className="px-2.5 py-1 text-xs text-slate-400 hover:text-white bg-[#1A2A44] hover:bg-[#243558] rounded-lg transition-colors cursor-pointer">
+                className="px-2.5 py-1 text-xs text-slate-400 hover:text-[var(--tx-base)] bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] rounded-lg transition-colors cursor-pointer">
                 Change PIN
               </button>
             )}
@@ -134,8 +134,8 @@ function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
         <Field label="Confirm PIN" required>
           <input className={iCls} type="password" inputMode="numeric" maxLength={6} value={confirmPin} onChange={e => setConfirm(e.target.value)} placeholder="••••" />
         </Field>
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#1E3050]">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">Cancel</button>
+        <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
           <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
             {saving ? "Creating…" : "Create User"}
           </button>
@@ -183,8 +183,8 @@ function ChangePinModal({ user, onClose, onSaved }: { user: User; onClose: () =>
               <input className={iCls} type="password" inputMode="numeric" maxLength={6} value={confirm} onChange={e => setConf(e.target.value)} placeholder="••••" />
             </Field>
             {error && <p className="text-red-400 text-sm">{error}</p>}
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#1E3050]">
-              <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">Cancel</button>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
               <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
                 {saving ? "Saving…" : "Update PIN"}
               </button>
@@ -228,15 +228,15 @@ function CategoriesTab() {
         {groups.map(({ parent, children }) => (
           <div key={parent.id}>
             {/* Parent row */}
-            <div className="flex items-center gap-3 bg-[#131F35] border border-[#1E3050] rounded-xl px-4 py-3 group">
+            <div className="flex items-center gap-3 bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-4 py-3 group">
               <div className="w-7 h-7 rounded-lg bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center flex-shrink-0">
                 <Tag size={13} className="text-[#14B8A6]" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-white font-medium text-sm">{parent.name}</span>
+                  <span className="text-[var(--tx-base)] font-medium text-sm">{parent.name}</span>
                   {children.length > 0 && (
-                    <span className="text-slate-600 text-[10px] bg-[#1A2A44] px-1.5 py-0.5 rounded-md">
+                    <span className="text-slate-600 text-[10px] bg-[var(--bg-raised)] px-1.5 py-0.5 rounded-md">
                       {children.length} sub
                     </span>
                   )}
@@ -250,22 +250,22 @@ function CategoriesTab() {
                 >
                   + Sub
                 </button>
-                <button onClick={() => setEditing(parent)} className={`${btnRow} bg-[#1A2A44] hover:bg-[#243558] text-slate-400 hover:text-white`}><Pencil size={12} /></button>
-                <button onClick={() => setDeleting(parent)} className={`${btnRow} bg-[#1A2A44] hover:bg-red-500/20 text-slate-400 hover:text-red-400`}><Trash2 size={12} /></button>
+                <button onClick={() => setEditing(parent)} className={`${btnRow} bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)]`}><Pencil size={12} /></button>
+                <button onClick={() => setDeleting(parent)} className={`${btnRow} bg-[var(--bg-raised)] hover:bg-red-500/20 text-slate-400 hover:text-red-400`}><Trash2 size={12} /></button>
               </div>
             </div>
 
             {/* Child rows */}
             {children.map(child => (
-              <div key={child.id} className="ml-6 mt-0.5 flex items-center gap-3 bg-[#0D1526] border border-[#1A2A44] rounded-xl px-4 py-2.5 group relative">
+              <div key={child.id} className="ml-6 mt-0.5 flex items-center gap-3 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl px-4 py-2.5 group relative">
                 <ChevronRight size={12} className="text-slate-700 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <span className="text-slate-300 text-sm">{child.name}</span>
                   {child.description && <div className="text-slate-600 text-xs truncate">{child.description}</div>}
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => setEditing(child)} className={`${btnRow} bg-[#131F35] hover:bg-[#1A2A44] text-slate-400 hover:text-white`}><Pencil size={12} /></button>
-                  <button onClick={() => setDeleting(child)} className={`${btnRow} bg-[#131F35] hover:bg-red-500/20 text-slate-400 hover:text-red-400`}><Trash2 size={12} /></button>
+                  <button onClick={() => setEditing(child)} className={`${btnRow} bg-[var(--bg-card)] hover:bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)]`}><Pencil size={12} /></button>
+                  <button onClick={() => setDeleting(child)} className={`${btnRow} bg-[var(--bg-card)] hover:bg-red-500/20 text-slate-400 hover:text-red-400`}><Trash2 size={12} /></button>
                 </div>
               </div>
             ))}
@@ -297,15 +297,15 @@ function CategoriesTab() {
           <div className="p-6 space-y-4">
             {deleting.parent_id === null && cats.some(c => c.parent_id === deleting.id) ? (
               <p className="text-slate-300 text-sm">
-                Delete <strong className="text-white">{deleting.name}</strong>? Its sub-categories will become top-level categories. Products will become uncategorized.
+                Delete <strong className="text-[var(--tx-base)]">{deleting.name}</strong>? Its sub-categories will become top-level categories. Products will become uncategorized.
               </p>
             ) : (
               <p className="text-slate-300 text-sm">
-                Delete <strong className="text-white">{deleting.name}</strong>? Products in this category will become uncategorized.
+                Delete <strong className="text-[var(--tx-base)]">{deleting.name}</strong>? Products in this category will become uncategorized.
               </p>
             )}
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleting(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">Cancel</button>
+              <button onClick={() => setDeleting(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
               <button
                 onClick={async () => { await api.deleteCategory(deleting.id); setDeleting(null); load(); }}
                 className="px-4 py-2 bg-red-500/15 hover:bg-red-500/25 text-red-400 font-medium text-sm rounded-xl border border-red-500/20 transition-colors cursor-pointer"
@@ -376,8 +376,8 @@ function CategoryModal({
           <input className={iCls} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Short description" />
         </Field>
         {error && <p className="text-red-400 text-sm">{error}</p>}
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#1E3050]">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">Cancel</button>
+        <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
           <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
             {saving ? "Saving…" : cat ? "Save" : "Add Category"}
           </button>
@@ -408,19 +408,19 @@ function SuppliersTab() {
 
       <div className="space-y-1.5">
         {suppliers.map(s => (
-          <div key={s.id} className="flex items-center gap-3 bg-[#131F35] border border-[#1E3050] rounded-xl px-4 py-3 group">
-            <div className="w-7 h-7 rounded-lg bg-[#1A2A44] flex items-center justify-center flex-shrink-0">
+          <div key={s.id} className="flex items-center gap-3 bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-4 py-3 group">
+            <div className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] flex items-center justify-center flex-shrink-0">
               <Truck size={13} className="text-slate-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-white font-medium text-sm">{s.name}</div>
+              <div className="text-[var(--tx-base)] font-medium text-sm">{s.name}</div>
               <div className="text-slate-500 text-xs flex gap-3">
                 {s.phone && <span>{s.phone}</span>}
                 {s.email && <span>{s.email}</span>}
                 {s.address && <span className="truncate max-w-[200px]">{s.address}</span>}
               </div>
             </div>
-            <button onClick={() => setEditing(s)} className="w-7 h-7 rounded-lg bg-[#1A2A44] hover:bg-[#243558] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer opacity-0 group-hover:opacity-100"><Pencil size={12} /></button>
+            <button onClick={() => setEditing(s)} className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer opacity-0 group-hover:opacity-100"><Pencil size={12} /></button>
           </div>
         ))}
         {suppliers.length === 0 && <p className="text-center py-8 text-slate-600 text-sm">No suppliers yet</p>}
@@ -481,8 +481,8 @@ function SupplierModal({ supplier, onClose, onSaved }: { supplier: Supplier | nu
           <input className={iCls} value={addr} onChange={e => setAddr(e.target.value)} placeholder="Street, City" />
         </Field>
         {error && <p className="text-red-400 text-sm">{error}</p>}
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#1E3050]">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">Cancel</button>
+        <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
           <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
             {saving ? "Saving…" : supplier ? "Save" : "Add Supplier"}
           </button>
@@ -551,7 +551,7 @@ function StoreConfigTab() {
         <label className="block text-xs text-slate-400 mb-2">Store Logo</label>
         <div className="flex items-start gap-4">
           {/* Preview */}
-          <div className="w-20 h-20 flex-shrink-0 rounded-xl bg-[#131F35] border border-[#1E3050] flex items-center justify-center overflow-hidden">
+          <div className="w-20 h-20 flex-shrink-0 rounded-xl bg-[var(--bg-card)] border border-[var(--bd-base)] flex items-center justify-center overflow-hidden">
             {logo ? (
               <img src={logo} alt="Store logo" className="w-full h-full object-contain p-1" />
             ) : (
@@ -561,7 +561,7 @@ function StoreConfigTab() {
 
           {/* Controls */}
           <div className="space-y-2 pt-1">
-            <label className="flex items-center gap-1.5 px-3 py-1.5 bg-[#131F35] border border-[#1E3050] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] text-xs rounded-xl transition-colors cursor-pointer">
+            <label className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--bd-base)] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] text-xs rounded-xl transition-colors cursor-pointer">
               <Upload size={12} /> Upload image
               <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleLogoChange} />
             </label>
@@ -613,7 +613,7 @@ function StoreConfigTab() {
       </Field>
 
       {/* Save */}
-      <div className="pt-2 border-t border-[#1E3050]">
+      <div className="pt-2 border-t border-[var(--bd-base)]">
         <button
           onClick={handleSave}
           disabled={saving}
@@ -658,7 +658,7 @@ function CurrencyTab() {
   return (
     <div className="max-w-md space-y-6">
       <div>
-        <p className="text-white font-semibold text-sm mb-1">Base Currency</p>
+        <p className="text-[var(--tx-base)] font-semibold text-sm mb-1">Base Currency</p>
         <p className="text-slate-500 text-xs mb-3">
           Prices in the database are stored in this currency. Change only before entering prices — existing prices will NOT be converted.
         </p>
@@ -670,7 +670,7 @@ function CurrencyTab() {
               className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
                 localBase === c
                   ? "bg-[#14B8A6]/15 border-[#14B8A6]/50 text-[#14B8A6]"
-                  : "bg-[#131F35] border-[#1E3050] text-slate-400 hover:border-[#14B8A6]/30 hover:text-slate-200"
+                  : "bg-[var(--bg-card)] border-[var(--bd-base)] text-slate-400 hover:border-[#14B8A6]/30 hover:text-slate-200"
               }`}
             >
               {c === "USD" ? "$ USD — Dollar" : "ل.ل LBP — Lebanese Pound"}
@@ -685,7 +685,7 @@ function CurrencyTab() {
       </div>
 
       <div>
-        <p className="text-white font-semibold text-sm mb-1">Exchange Rate</p>
+        <p className="text-[var(--tx-base)] font-semibold text-sm mb-1">Exchange Rate</p>
         <p className="text-slate-500 text-xs mb-3">How many Lebanese Pounds equal 1 US Dollar.</p>
         <div className="flex items-center gap-3">
           <span className="text-slate-400 text-sm whitespace-nowrap">1 USD =</span>
@@ -706,13 +706,13 @@ function CurrencyTab() {
       </div>
 
       <div>
-        <p className="text-white font-semibold text-sm mb-1">Show Secondary Currency</p>
+        <p className="text-[var(--tx-base)] font-semibold text-sm mb-1">Show Secondary Currency</p>
         <p className="text-slate-500 text-xs mb-3">Display the equivalent amount in the other currency alongside prices.</p>
         <button
           onClick={() => setLocalAlt(v => !v)}
           className="flex items-center gap-2 cursor-pointer group"
         >
-          <div className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${localAlt ? "bg-[#14B8A6]" : "bg-[#1A2A44] border border-[#1E3050]"}`}>
+          <div className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${localAlt ? "bg-[#14B8A6]" : "bg-[var(--bg-raised)] border border-[var(--bd-base)]"}`}>
             <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${localAlt ? "left-4" : "left-0.5"}`} />
           </div>
           <span className="text-sm text-slate-400 group-hover:text-slate-300">
@@ -721,7 +721,7 @@ function CurrencyTab() {
         </button>
       </div>
 
-      <div className="pt-2 border-t border-[#1E3050]">
+      <div className="pt-2 border-t border-[var(--bd-base)]">
         <button
           onClick={handleSave}
           disabled={saving || parseInt(rate || "0") <= 0}
@@ -749,7 +749,7 @@ export default function SettingsScreen({ user }: Props) {
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* Left sidebar */}
-      <div className="w-48 flex-shrink-0 border-r border-[#1E3050] bg-[#0D1526] py-4 px-2">
+      <div className="w-48 flex-shrink-0 border-r border-[var(--bd-base)] bg-[var(--bg-base)] py-4 px-2">
         <p className="text-xs text-slate-600 font-medium uppercase tracking-wider px-3 mb-3">Settings</p>
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
@@ -758,7 +758,7 @@ export default function SettingsScreen({ user }: Props) {
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer mb-0.5 ${
               tab === id
                 ? "bg-[#14B8A6]/10 text-[#14B8A6] border border-[#14B8A6]/20"
-                : "text-slate-500 hover:text-slate-300 hover:bg-[#131F35]"
+                : "text-slate-500 hover:text-slate-300 hover:bg-[var(--bg-card)]"
             }`}
           >
             <Icon size={15} />

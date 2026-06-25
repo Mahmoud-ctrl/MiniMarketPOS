@@ -78,7 +78,7 @@ export default function LoginScreen({ onLogin }: Props) {
             <div className="w-11 h-11 rounded-2xl bg-[#14B8A6]/15 border border-[#14B8A6]/30 flex items-center justify-center">
               <Store size={22} className="text-[#14B8A6]" />
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-[var(--tx-base)] tracking-tight">
               MiniMarket <span className="text-[#14B8A6]">POS</span>
             </h1>
           </div>
@@ -87,7 +87,7 @@ export default function LoginScreen({ onLogin }: Props) {
 
         <div className="grid grid-cols-[1fr_300px] gap-4">
           {/* Cashier list */}
-          <div className="bg-[#0D1526]/80 backdrop-blur border border-[#1E3050] rounded-2xl p-5">
+          <div className="bg-[var(--bg-base)]/80 backdrop-blur border border-[var(--bd-base)] rounded-2xl p-5">
             <p className="text-slate-500 text-xs font-semibold uppercase tracking-widest mb-4">
               Who's clocking in?
             </p>
@@ -109,20 +109,20 @@ export default function LoginScreen({ onLogin }: Props) {
                     className={`group flex items-center gap-3 p-3.5 rounded-xl border transition-all duration-150 text-left cursor-pointer ${
                       selected?.id === u.id
                         ? "bg-[#14B8A6]/10 border-[#14B8A6]/40 shadow-lg shadow-[#14B8A6]/5"
-                        : "bg-[#131F35]/60 border-[#1E3050] hover:bg-[#1A2A44] hover:border-[#243558]"
+                        : "bg-[var(--bg-card)]/60 border-[var(--bd-base)] hover:bg-[var(--bg-raised)] hover:border-[var(--bd-strong)]"
                     }`}
                   >
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 transition-all duration-150 ${
                         selected?.id === u.id
                           ? "bg-[#14B8A6] text-slate-900"
-                          : "bg-[#1A2A44] text-slate-300 group-hover:bg-[#243558]"
+                          : "bg-[var(--bg-raised)] text-slate-300 group-hover:bg-[var(--bg-raised)]"
                       }`}
                     >
                       {u.full_name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-white font-medium text-sm truncate">{u.full_name}</div>
+                      <div className="text-[var(--tx-base)] font-medium text-sm truncate">{u.full_name}</div>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize mt-1 inline-block ${roleStyle[u.role]}`}>
                         {u.role}
                       </span>
@@ -135,7 +135,7 @@ export default function LoginScreen({ onLogin }: Props) {
 
           {/* PIN panel */}
           <div
-            className={`bg-[#0D1526]/80 backdrop-blur border border-[#1E3050] rounded-2xl p-5 flex flex-col items-center gap-5 ${shake ? "shake" : ""}`}
+            className={`bg-[var(--bg-base)]/80 backdrop-blur border border-[var(--bd-base)] rounded-2xl p-5 flex flex-col items-center gap-5 ${shake ? "shake" : ""}`}
           >
             {/* Selected user or placeholder */}
             <div className="w-full text-center h-20 flex flex-col items-center justify-center">
@@ -144,7 +144,7 @@ export default function LoginScreen({ onLogin }: Props) {
                   <div className="w-12 h-12 rounded-full bg-[#14B8A6] text-slate-900 font-bold text-lg flex items-center justify-center mb-1.5">
                     {selected.full_name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="text-white font-semibold text-sm">{selected.full_name}</div>
+                  <div className="text-[var(--tx-base)] font-semibold text-sm">{selected.full_name}</div>
                 </>
               ) : (
                 <div className="flex flex-col items-center gap-2 text-slate-600">
@@ -162,7 +162,7 @@ export default function LoginScreen({ onLogin }: Props) {
                   className={`w-2.5 h-2.5 rounded-full transition-all duration-150 ${
                     i < pin.length
                       ? "bg-[#14B8A6] scale-110 shadow-sm shadow-[#14B8A6]/50"
-                      : "bg-[#1E3050] border border-[#243558]"
+                      : "bg-[var(--bg-card)] border border-[var(--bd-strong)]"
                   }`}
                 />
               ))}

@@ -1,4 +1,3 @@
-// v009: sales status check updated to allow 'pending'
 mod commands;
 mod db;
 mod error;
@@ -6,7 +5,7 @@ mod models;
 
 use tauri::Manager;
 
-const DATABASE_URL: &str = "postgresql://postgres:abed@localhost:5432/minimarket";
+const DATABASE_URL: &str = "postgresql://postgres:1289@localhost:5432/minimarket";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -74,10 +73,19 @@ pub fn run() {
             commands::sessions::close_cash_session,
             commands::sessions::get_active_session,
             commands::sessions::get_sessions,
+            // Reports
+            commands::reports::get_sales_summary,
+            commands::reports::get_daily_sales,
+            commands::reports::get_top_products,
+            commands::reports::get_top_customers,
+            commands::reports::get_cashier_stats,
             // Customers
             commands::customers::get_customers,
             commands::customers::search_customers,
             commands::customers::create_customer,
+            commands::customers::create_customer_quick,
+            commands::customers::update_customer,
+            commands::customers::deactivate_customer,
             commands::customers::get_customer_ledger,
             commands::customers::record_customer_payment,
             // Settings

@@ -367,3 +367,51 @@ pub struct Setting {
     pub value:      String,
     pub updated_at: DateTime<Utc>,
 }
+
+// ── Reports ───────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct SalesSummary {
+    pub total_revenue:     i64,
+    pub transaction_count: i64,
+    pub average_order:     i64,
+    pub total_discount:    i64,
+    pub total_tax:         i64,
+    pub cash_collected:    i64,
+    pub credit_collected:  i64,
+    pub debt_added:        i64,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct DailySalesRow {
+    pub date:         String,
+    pub revenue:      i64,
+    pub transactions: i64,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct TopProductRow {
+    pub product_id:        i64,
+    pub product_name:      String,
+    pub quantity_sold:     f64,
+    pub revenue:           i64,
+    pub transaction_count: i64,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct TopCustomerRow {
+    pub customer_id:   i64,
+    pub customer_name: String,
+    pub total_spent:   i64,
+    pub visit_count:   i64,
+    pub balance_due:   i64,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct CashierStatsRow {
+    pub cashier_id:        i64,
+    pub cashier_name:      String,
+    pub total_sales:       i64,
+    pub transaction_count: i64,
+    pub average_order:     i64,
+}

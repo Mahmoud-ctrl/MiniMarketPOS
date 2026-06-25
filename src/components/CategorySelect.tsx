@@ -1,7 +1,7 @@
 import { Category } from "../types";
 import { groupCategories } from "../lib/categories";
 
-const BASE = "w-full px-3 py-2 bg-[#131F35] border border-[#1E3050] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-white text-sm transition-colors cursor-pointer";
+const BASE = "w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm transition-colors cursor-pointer";
 
 export default function CategorySelect({
   value,

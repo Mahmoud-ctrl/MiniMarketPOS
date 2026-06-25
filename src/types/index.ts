@@ -205,3 +205,46 @@ export interface Setting {
   value: string;
   updated_at: string;
 }
+
+// ── Reports ───────────────────────────────────────────────────────────────────
+
+export interface SalesSummary {
+  total_revenue:     number;
+  transaction_count: number;
+  average_order:     number;
+  total_discount:    number;
+  total_tax:         number;
+  cash_collected:    number;
+  credit_collected:  number;
+  debt_added:        number;
+}
+
+export interface DailySalesRow {
+  date:         string;
+  revenue:      number;
+  transactions: number;
+}
+
+export interface TopProductRow {
+  product_id:        number;
+  product_name:      string;
+  quantity_sold:     number;
+  revenue:           number;
+  transaction_count: number;
+}
+
+export interface TopCustomerRow {
+  customer_id:   number;
+  customer_name: string;
+  total_spent:   number;
+  visit_count:   number;
+  balance_due:   number;
+}
+
+export interface CashierStatsRow {
+  cashier_id:        number;
+  cashier_name:      string;
+  total_sales:       number;
+  transaction_count: number;
+  average_order:     number;
+}

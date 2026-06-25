@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  BarChart3, BoxesIcon, Home, LogOut,
+  BarChart3, BoxesIcon, Home, LogOut, Moon, Sun,
   Package, QrCode, ScrollText, Search, Settings, Truck, Users, Zap,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { Category, PriceTier, Product, User } from "../types";
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
+import { useTheme } from "../context/ThemeContext";
 import CartPanel from "../components/CartPanel";
 import InventoryScreen from "./InventoryScreen";
 import PurchasesScreen from "./PurchasesScreen";
@@ -45,6 +46,7 @@ const NAV: { id: Screen; icon: typeof Home; label: string }[] = [
 
 export default function POSScreen({ user, onLogout }: Props) {
   const { fmt, fmtAlt, showAlt } = useCurrency();
+  const { theme, toggleTheme } = useTheme();
   const { addToCart, priceTier, setPriceTier, items: cartItems } = useCart();
 
   const [screen, setScreen]           = useState<Screen>("pos");
@@ -128,10 +130,10 @@ export default function POSScreen({ user, onLogout }: Props) {
   };
 
   return (
-    <div className="h-screen flex bg-[#020817] overflow-hidden">
+    <div className="h-screen flex bg-[var(--bg-deep)] overflow-hidden">
 
       {/* ── Sidebar ────────────────────────────────────────────── */}
-      <div className="w-20 flex-shrink-0 flex flex-col items-center py-5 gap-1 border-r border-[#0F1E38] bg-[#060E1A]">
+      <div className="w-20 flex-shrink-0 flex flex-col items-center py-5 gap-1 border-r border-[var(--bd-faint)] bg-[var(--bg-panel)]">
         {/* Logo */}
         <div className="w-10 h-10 rounded-2xl bg-[#14B8A6] flex items-center justify-center mb-5 shadow-lg shadow-[#14B8A6]/30">
           <Zap size={18} className="text-[#020817]" fill="currentColor" />
@@ -144,7 +146,7 @@ export default function POSScreen({ user, onLogout }: Props) {
             className={`flex flex-col items-center gap-1.5 w-14 py-3 rounded-xl transition-all duration-150 cursor-pointer ${
               screen === id
                 ? "bg-[#14B8A6]/15 text-[#14B8A6]"
-                : "text-slate-600 hover:text-slate-400 hover:bg-[#0D1526]"
+                : "text-slate-600 hover:text-slate-400 hover:bg-[var(--bg-base)]"
             }`}
           >
             <Icon size={19} />
@@ -154,13 +156,25 @@ export default function POSScreen({ user, onLogout }: Props) {
 
         <div className="flex-1" />
 
+        {/* Theme toggle */}
+        <button
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          onClick={toggleTheme}
+          className="flex flex-col items-center gap-1.5 w-14 py-3 rounded-xl text-slate-600 hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 transition-all cursor-pointer"
+        >
+          {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
+          <span className="text-[10px] font-semibold tracking-wide leading-none">
+            {theme === "dark" ? "Light" : "Dark"}
+          </span>
+        </button>
+
         {/* User avatar / logout */}
         <button
           title={`Logout ${user.full_name}`}
           onClick={onLogout}
           className="group flex flex-col items-center gap-1.5 w-14 py-3 rounded-xl text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
         >
-          <div className="w-7 h-7 rounded-full bg-[#14B8A6] group-hover:bg-red-500 text-slate-900 group-hover:text-white text-xs font-bold flex items-center justify-center transition-colors">
+          <div className="w-7 h-7 rounded-full bg-[#14B8A6] group-hover:bg-red-500 text-slate-900 group-hover:text-[var(--tx-base)] text-xs font-bold flex items-center justify-center transition-colors">
             {user.full_name.charAt(0).toUpperCase()}
           </div>
           <LogOut size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -196,7 +210,7 @@ export default function POSScreen({ user, onLogout }: Props) {
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
             {/* ── Top bar ────────────────────────────────────────── */}
-            <div className="flex items-center gap-4 px-5 py-3.5 border-b border-[#0F1E38] bg-[#060E1A]">
+            <div className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--bd-faint)] bg-[var(--bg-panel)]">
               {/* Search */}
               <div className="flex-1 relative max-w-xl">
                 <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
@@ -206,7 +220,7 @@ export default function POSScreen({ user, onLogout }: Props) {
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={handleSearchKey}
                   placeholder="Search products or scan barcode…"
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#0D1526] border border-[#1A2D45] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl text-white text-sm placeholder-slate-600 transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-500 transition-colors"
                 />
               </div>
 
@@ -217,7 +231,7 @@ export default function POSScreen({ user, onLogout }: Props) {
               </div>
 
               {/* Price tier switcher */}
-              <div className="flex items-center gap-0.5 bg-[#0D1526] border border-[#1A2D45] rounded-xl p-1">
+              <div className="flex items-center gap-0.5 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl p-1">
                 {(["retail", "wholesale", "special"] as PriceTier[]).map((t) => (
                   <button
                     key={t}
@@ -234,7 +248,7 @@ export default function POSScreen({ user, onLogout }: Props) {
               </div>
 
               {/* Session / cashier info */}
-              <div className="flex items-center gap-2 text-xs text-slate-500 border-l border-[#1A2D45] pl-4">
+              <div className="flex items-center gap-2 text-xs text-slate-500 border-l border-[var(--bd-base)] pl-4">
                 <BoxesIcon size={13} />
                 <span className="text-slate-400 font-medium">{user.full_name}</span>
                 {sessionId ? (
@@ -272,13 +286,13 @@ export default function POSScreen({ user, onLogout }: Props) {
             </div>
 
             {/* ── Category tabs ──────────────────────────────────── */}
-            <div className="flex items-center gap-2 px-5 py-3 border-b border-[#0F1E38] overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--bd-faint)] overflow-x-auto scrollbar-hide">
               <button
                 onClick={() => setActiveCat(null)}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex-shrink-0 ${
                   activeCat === null
                     ? "bg-[#14B8A6]/15 text-[#14B8A6] border border-[#14B8A6]/30"
-                    : "text-slate-500 hover:text-slate-300 hover:bg-[#0D1526] border border-transparent"
+                    : "text-slate-500 hover:text-slate-300 hover:bg-[var(--bg-base)] border border-transparent"
                 }`}
               >
                 All
@@ -291,7 +305,7 @@ export default function POSScreen({ user, onLogout }: Props) {
                   className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex-shrink-0 border ${
                     activeCat === c.id
                       ? ""
-                      : "text-slate-500 hover:text-slate-300 hover:bg-[#0D1526] border-transparent"
+                      : "text-slate-500 hover:text-slate-300 hover:bg-[var(--bg-base)] border-transparent"
                   }`}
                 >
                   {c.name}
@@ -304,7 +318,7 @@ export default function POSScreen({ user, onLogout }: Props) {
               {loadingProd ? (
                 <div className="grid grid-cols-3 gap-4">
                   {Array.from({ length: 9 }).map((_, i) => (
-                    <div key={i} className="h-36 rounded-2xl bg-[#0D1526]/60 border border-[#1A2D45] animate-pulse" />
+                    <div key={i} className="h-36 rounded-2xl bg-[var(--bg-base)]/60 border border-[var(--bd-base)] animate-pulse" />
                   ))}
                 </div>
               ) : products.length === 0 ? (
@@ -331,10 +345,10 @@ export default function POSScreen({ user, onLogout }: Props) {
                         disabled={p.is_frozen}
                         className={`group relative text-left rounded-2xl border transition-all duration-150 cursor-pointer active:scale-[0.97] flex flex-col ${
                           p.is_frozen
-                            ? "opacity-40 cursor-not-allowed bg-[#0D1526] border-[#1A2D45]"
+                            ? "opacity-40 cursor-not-allowed bg-[var(--bg-base)] border-[var(--bd-base)]"
                             : inCart
-                            ? "bg-[#081A2E] border-[#14B8A6]/40 shadow-lg shadow-[#14B8A6]/10"
-                            : "bg-[#0D1526] border-[#1A2D45] hover:border-[#2A4060] hover:bg-[#101D30] hover:shadow-xl hover:shadow-black/30"
+                            ? "bg-[var(--bg-base)] border-[#14B8A6]/40 shadow-lg shadow-[#14B8A6]/10"
+                            : "bg-[var(--bg-base)] border-[var(--bd-base)] hover:border-[var(--bd-strong)] hover:bg-[var(--bg-card)] hover:shadow-xl hover:shadow-black/10"
                         }`}
                       >
                         {/* Category color stripe */}
@@ -351,10 +365,10 @@ export default function POSScreen({ user, onLogout }: Props) {
                         )}
 
                         <div className="p-4 flex flex-col flex-1">
-                          <div className="text-white text-[15px] font-semibold leading-snug line-clamp-2 mb-auto">
+                          <div className="text-[var(--tx-base)] text-[15px] font-semibold leading-snug line-clamp-2 mb-auto">
                             {p.name}
                           </div>
-                          <div className="flex items-baseline justify-between mt-4 pt-3 border-t border-[#1A2D45]">
+                          <div className="flex items-baseline justify-between mt-4 pt-3 border-t border-[var(--bd-base)]">
                             <div>
                               <div className="text-[#14B8A6] font-bold text-xl tabular-nums leading-none">
                                 {fmt(price)}
@@ -378,7 +392,7 @@ export default function POSScreen({ user, onLogout }: Props) {
             </div>
 
             {/* ── Status bar ─────────────────────────────────────── */}
-            <div className="flex items-center gap-3 px-5 py-2 border-t border-[#0F1E38] bg-[#060E1A] text-[11px] text-slate-600">
+            <div className="flex items-center gap-3 px-5 py-2 border-t border-[var(--bd-faint)] bg-[var(--bg-panel)] text-[11px] text-slate-500">
               <span>{products.length} products</span>
               <span className="text-slate-800">·</span>
               <span>{new Date().toLocaleTimeString()}</span>
@@ -397,7 +411,7 @@ export default function POSScreen({ user, onLogout }: Props) {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0D1526] border border-[#1A2D45] text-white text-sm px-5 py-3 rounded-xl shadow-2xl fade-in z-50">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[var(--bg-base)] border border-[var(--bd-base)] text-[var(--tx-base)] text-sm px-5 py-3 rounded-xl shadow-2xl fade-in z-50">
           {toast}
         </div>
       )}

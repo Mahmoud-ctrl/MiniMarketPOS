@@ -36,7 +36,7 @@ function StatusBadge({ status }: { status: Purchase["status"] }) {
 }
 
 // ── Shared input styles ────────────────────────────────────────────────────────
-const iCls = "w-full px-3 py-2 bg-[#131F35] border border-[#1E3050] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-white text-sm placeholder-slate-600 transition-colors";
+const iCls = "w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors";
 const selCls = iCls + " cursor-pointer";
 
 // ── Create PO Modal ────────────────────────────────────────────────────────────
@@ -193,14 +193,14 @@ function CreatePOModal({
                   autoComplete="off"
                 />
                 {showDropdown && (searchResults.length > 0 || (productSearch.trim() && searchResults.length === 0)) && (
-                  <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-[#0C1828] border border-[#1A2D45] rounded-xl shadow-2xl overflow-hidden">
+                  <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl shadow-2xl overflow-hidden">
                     {searchResults.length === 0 ? (
                       <p className="px-4 py-3 text-slate-500 text-sm">No products found</p>
                     ) : searchResults.map(p => (
                       <button key={p.id} type="button" onMouseDown={() => addProduct(p)}
-                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#131F35] transition-colors text-left cursor-pointer">
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[var(--bg-card)] transition-colors text-left cursor-pointer">
                         <div>
-                          <p className="text-white text-sm">{p.name}</p>
+                          <p className="text-[var(--tx-base)] text-sm">{p.name}</p>
                           <p className="text-slate-500 text-xs">
                             {p.unit}
                             {p.barcode ? ` · ${p.barcode}` : ""}
@@ -216,12 +216,12 @@ function CreatePOModal({
               </div>
             </div>
             {showDropdown && !productSearch.trim() && catId && searchResults.length > 0 && (
-              <div className="mt-1 bg-[#0C1828] border border-[#1A2D45] rounded-xl shadow-2xl overflow-hidden">
+              <div className="mt-1 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl shadow-2xl overflow-hidden">
                 {searchResults.map(p => (
                   <button key={p.id} type="button" onMouseDown={() => addProduct(p)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#131F35] transition-colors text-left cursor-pointer">
+                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[var(--bg-card)] transition-colors text-left cursor-pointer">
                     <div>
-                      <p className="text-white text-sm">{p.name}</p>
+                      <p className="text-[var(--tx-base)] text-sm">{p.name}</p>
                       <p className="text-slate-500 text-xs">
                         {p.unit}{p.barcode ? ` · ${p.barcode}` : ""} · Cost: {fmt(p.cost_price)}
                       </p>
@@ -235,9 +235,9 @@ function CreatePOModal({
 
           {/* Line items table */}
           {lines.length > 0 && (
-            <div className="rounded-xl border border-[#1E3050] overflow-hidden">
+            <div className="rounded-xl border border-[var(--bd-base)] overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-[#0A1020] border-b border-[#1E3050]">
+                <thead className="bg-[var(--bg-base)] border-b border-[var(--bd-base)]">
                   <tr>
                     {["Product", "Unit", "Qty", "Unit Cost", "Subtotal", ""].map(h => (
                       <th key={h} className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{h}</th>
@@ -248,9 +248,9 @@ function CreatePOModal({
                   {lines.map((l, i) => {
                     const subtotal = toDb(String(parseFloat(l.quantity || "0") * parseFloat(l.unit_cost || "0")));
                     return (
-                      <tr key={l.product.id} className="border-b border-[#1E3050]/40">
+                      <tr key={l.product.id} className="border-b border-[var(--bd-base)]/40">
                         <td className="px-3 py-2.5">
-                          <p className="text-white font-medium">{l.product.name}</p>
+                          <p className="text-[var(--tx-base)] font-medium">{l.product.name}</p>
                           {l.product.barcode && <p className="text-slate-600 text-xs">{l.product.barcode}</p>}
                         </td>
                         <td className="px-3 py-2.5 text-slate-400 text-xs">{l.product.unit}</td>
@@ -273,7 +273,7 @@ function CreatePOModal({
                     );
                   })}
                 </tbody>
-                <tfoot className="bg-[#0A1020] border-t border-[#1E3050]">
+                <tfoot className="bg-[var(--bg-base)] border-t border-[var(--bd-base)]">
                   <tr>
                     <td colSpan={4} className="px-3 py-2.5 text-right text-sm text-slate-400 font-medium">Total</td>
                     <td className="px-3 py-2.5 text-[#14B8A6] font-bold">{fmt(total)}</td>
@@ -285,7 +285,7 @@ function CreatePOModal({
           )}
 
           {lines.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-[#1E3050] rounded-xl text-slate-600">
+            <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-[var(--bd-base)] rounded-xl text-slate-600">
               <Package size={32} strokeWidth={1} className="mb-2" />
               <p className="text-sm">Search for products above to add items</p>
             </div>
@@ -293,7 +293,7 @@ function CreatePOModal({
         </div>
 
         {/* ── Sticky footer ─────────────────────────────────────────── */}
-        <div className="flex-shrink-0 px-6 py-4 border-t border-[#1E3050] bg-[#0C1828]">
+        <div className="flex-shrink-0 px-6 py-4 border-t border-[var(--bd-base)] bg-[var(--bg-base)]">
           {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
           <div className="flex items-center justify-between">
             <span className="text-slate-500 text-xs">
@@ -302,7 +302,7 @@ function CreatePOModal({
             </span>
             <div className="flex gap-2">
               <button type="button" onClick={onClose}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">
+                className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">
                 Cancel
               </button>
               <button type="submit" disabled={saving || lines.length === 0}
@@ -345,8 +345,8 @@ function ReceiveModal({
   return (
     <Modal title="Confirm Receipt" onClose={onClose} width="max-w-lg">
       <div className="p-6 space-y-4">
-        <div className="bg-[#131F35] border border-[#1E3050] rounded-xl px-4 py-3 space-y-0.5">
-          <p className="text-white font-medium">
+        <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-4 py-3 space-y-0.5">
+          <p className="text-[var(--tx-base)] font-medium">
             PO #{purchase.id}{purchase.reference_no ? ` · ${purchase.reference_no}` : ""}
           </p>
           {purchase.supplier_name && (
@@ -355,9 +355,9 @@ function ReceiveModal({
         </div>
 
         {detail ? (
-          <div className="rounded-xl border border-[#1E3050] overflow-hidden text-sm">
+          <div className="rounded-xl border border-[var(--bd-base)] overflow-hidden text-sm">
             <table className="w-full">
-              <thead className="bg-[#0A1020] border-b border-[#1E3050]">
+              <thead className="bg-[var(--bg-base)] border-b border-[var(--bd-base)]">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs text-slate-500 uppercase">Product</th>
                   <th className="px-3 py-2 text-right text-xs text-slate-500 uppercase">Qty</th>
@@ -366,8 +366,8 @@ function ReceiveModal({
               </thead>
               <tbody>
                 {detail.items.map((item: PurchaseItem) => (
-                  <tr key={item.id} className="border-b border-[#1E3050]/40">
-                    <td className="px-3 py-2.5 text-white">{item.product_name}</td>
+                  <tr key={item.id} className="border-b border-[var(--bd-base)]/40">
+                    <td className="px-3 py-2.5 text-[var(--tx-base)]">{item.product_name}</td>
                     <td className="px-3 py-2.5 text-right text-slate-400 tabular">
                       {item.quantity} {item.unit}
                     </td>
@@ -380,7 +380,7 @@ function ReceiveModal({
             </table>
           </div>
         ) : (
-          <div className="h-20 bg-[#131F35] border border-[#1E3050] rounded-xl animate-pulse" />
+          <div className="h-20 bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl animate-pulse" />
         )}
 
         <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3 text-xs text-emerald-400 space-y-1">
@@ -390,13 +390,13 @@ function ReceiveModal({
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
-        <div className="flex justify-end gap-2 pt-1 border-t border-[#1E3050]">
+        <div className="flex justify-end gap-2 pt-1 border-t border-[var(--bd-base)]">
           <button onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">
+            className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">
             Cancel
           </button>
           <button onClick={handleConfirm} disabled={saving || !detail}
-            className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
+            className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-[var(--tx-base)] font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
             {saving ? "Receiving…" : "Confirm Receipt"}
           </button>
         </div>
@@ -420,19 +420,19 @@ function DetailModal({ purchase, onClose }: { purchase: Purchase; onClose: () =>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Supplier</p>
-            <p className="text-white">{purchase.supplier_name ?? "—"}</p>
+            <p className="text-[var(--tx-base)]">{purchase.supplier_name ?? "—"}</p>
           </div>
           <div>
             <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Reference</p>
-            <p className="text-white">{purchase.reference_no ?? "—"}</p>
+            <p className="text-[var(--tx-base)]">{purchase.reference_no ?? "—"}</p>
           </div>
           <div>
             <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Created</p>
-            <p className="text-white">{fmtDate(purchase.created_at)}</p>
+            <p className="text-[var(--tx-base)]">{fmtDate(purchase.created_at)}</p>
           </div>
           <div>
             <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Received</p>
-            <p className="text-white">{purchase.received_at ? fmtDate(purchase.received_at) : "—"}</p>
+            <p className="text-[var(--tx-base)]">{purchase.received_at ? fmtDate(purchase.received_at) : "—"}</p>
           </div>
           <div>
             <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Status</p>
@@ -445,15 +445,15 @@ function DetailModal({ purchase, onClose }: { purchase: Purchase; onClose: () =>
         </div>
 
         {purchase.notes && (
-          <div className="bg-[#131F35] border border-[#1E3050] rounded-xl px-4 py-3 text-sm text-slate-400">
+          <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-4 py-3 text-sm text-slate-400">
             {purchase.notes}
           </div>
         )}
 
         {detail ? (
-          <div className="rounded-xl border border-[#1E3050] overflow-hidden text-sm">
+          <div className="rounded-xl border border-[var(--bd-base)] overflow-hidden text-sm">
             <table className="w-full">
-              <thead className="bg-[#0A1020] border-b border-[#1E3050]">
+              <thead className="bg-[var(--bg-base)] border-b border-[var(--bd-base)]">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs text-slate-500 uppercase">Product</th>
                   <th className="px-3 py-2 text-right text-xs text-slate-500 uppercase">Qty</th>
@@ -463,8 +463,8 @@ function DetailModal({ purchase, onClose }: { purchase: Purchase; onClose: () =>
               </thead>
               <tbody>
                 {detail.items.map((item: PurchaseItem) => (
-                  <tr key={item.id} className="border-b border-[#1E3050]/40">
-                    <td className="px-3 py-2.5 text-white">{item.product_name}</td>
+                  <tr key={item.id} className="border-b border-[var(--bd-base)]/40">
+                    <td className="px-3 py-2.5 text-[var(--tx-base)]">{item.product_name}</td>
                     <td className="px-3 py-2.5 text-right text-slate-400 tabular">{item.quantity} {item.unit}</td>
                     <td className="px-3 py-2.5 text-right text-slate-300 tabular">{fmt(item.unit_cost)}</td>
                     <td className="px-3 py-2.5 text-right text-[#14B8A6] tabular">{fmt(item.subtotal)}</td>
@@ -474,12 +474,12 @@ function DetailModal({ purchase, onClose }: { purchase: Purchase; onClose: () =>
             </table>
           </div>
         ) : (
-          <div className="h-20 bg-[#131F35] border border-[#1E3050] rounded-xl animate-pulse" />
+          <div className="h-20 bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl animate-pulse" />
         )}
 
-        <div className="flex justify-end pt-1 border-t border-[#1E3050]">
+        <div className="flex justify-end pt-1 border-t border-[var(--bd-base)]">
           <button onClick={onClose}
-            className="px-5 py-2 bg-[#131F35] hover:bg-[#1A2A44] text-slate-300 text-sm rounded-xl transition-colors cursor-pointer">
+            className="px-5 py-2 bg-[var(--bg-card)] hover:bg-[var(--bg-raised)] text-slate-300 text-sm rounded-xl transition-colors cursor-pointer">
             Close
           </button>
         </div>
@@ -520,13 +520,13 @@ function VoidModal({
           <p>⚠ Product cost prices will not be reverted automatically</p>
         </div>
         {error && <p className="text-red-400 text-sm">{error}</p>}
-        <div className="flex justify-end gap-2 pt-1 border-t border-[#1E3050]">
+        <div className="flex justify-end gap-2 pt-1 border-t border-[var(--bd-base)]">
           <button onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">
+            className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">
             Cancel
           </button>
           <button onClick={handleVoid} disabled={saving}
-            className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
+            className="px-5 py-2 bg-red-500 hover:bg-red-600 text-[var(--tx-base)] font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
             {saving ? "Voiding…" : "Void Purchase"}
           </button>
         </div>
@@ -600,9 +600,9 @@ export default function PurchasesScreen({ user }: Props) {
     <div className="flex-1 flex flex-col overflow-hidden">
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-[#1E3050] bg-[#0D1526]">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--bd-base)] bg-[var(--bg-base)]">
         <div>
-          <h1 className="text-white font-semibold text-base flex items-center gap-2">
+          <h1 className="text-[var(--tx-base)] font-semibold text-base flex items-center gap-2">
             <Truck size={16} className="text-[#14B8A6]" /> Purchases
           </h1>
           <p className="text-slate-500 text-xs">{purchases.length} orders</p>
@@ -618,7 +618,7 @@ export default function PurchasesScreen({ user }: Props) {
               className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer capitalize ${
                 statusFilter === s
                   ? "bg-[#14B8A6]/15 text-[#14B8A6] border border-[#14B8A6]/30"
-                  : "text-slate-500 hover:text-slate-300 border border-transparent hover:border-[#1E3050]"
+                  : "text-slate-500 hover:text-slate-300 border border-transparent hover:border-[var(--bd-base)]"
               }`}
             >
               {s === "all" ? "All" : `${s.charAt(0).toUpperCase() + s.slice(1)} ${counts[s] > 0 ? `(${counts[s]})` : ""}`}
@@ -632,11 +632,11 @@ export default function PurchasesScreen({ user }: Props) {
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search…"
-            className="w-full pl-8 pr-3 py-1.5 bg-[#131F35] border border-[#1E3050] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-white text-sm placeholder-slate-600 transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
           />
         </div>
 
-        <button onClick={load} className="w-8 h-8 rounded-xl bg-[#131F35] border border-[#1E3050] text-slate-500 hover:text-white flex items-center justify-center transition-colors cursor-pointer">
+        <button onClick={load} className="w-8 h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--bd-base)] text-slate-500 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
 
@@ -651,7 +651,7 @@ export default function PurchasesScreen({ user }: Props) {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <table className="w-full text-sm min-w-[800px]">
-          <thead className="sticky top-0 bg-[#0A1020] border-b border-[#1E3050] z-10">
+          <thead className="sticky top-0 bg-[var(--bg-base)] border-b border-[var(--bd-base)] z-10">
             <tr>
               {["Date", "Supplier", "Reference", "Items", "Total", "Status", ""].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{h}</th>
@@ -661,10 +661,10 @@ export default function PurchasesScreen({ user }: Props) {
           <tbody>
             {loading ? (
               Array.from({ length: 6 }).map((_, i) => (
-                <tr key={i} className="border-b border-[#1E3050]/40">
+                <tr key={i} className="border-b border-[var(--bd-base)]/40">
                   {Array.from({ length: 7 }).map((_, j) => (
                     <td key={j} className="px-4 py-3">
-                      <div className="h-4 bg-[#131F35] rounded animate-pulse" />
+                      <div className="h-4 bg-[var(--bg-card)] rounded animate-pulse" />
                     </td>
                   ))}
                 </tr>
@@ -677,12 +677,12 @@ export default function PurchasesScreen({ user }: Props) {
                 </td>
               </tr>
             ) : filtered.map(p => (
-              <tr key={p.id} className="border-b border-[#1E3050]/40 hover:bg-[#131F35]/40 transition-colors group">
+              <tr key={p.id} className="border-b border-[var(--bd-base)]/40 hover:bg-[var(--bg-card)]/40 transition-colors group">
                 <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
                   {fmtDate(p.created_at)}
                 </td>
                 <td className="px-4 py-3">
-                  <p className="text-white font-medium">{p.supplier_name ?? <span className="text-slate-600">—</span>}</p>
+                  <p className="text-[var(--tx-base)] font-medium">{p.supplier_name ?? <span className="text-slate-600">—</span>}</p>
                 </td>
                 <td className="px-4 py-3 text-slate-400 text-xs">
                   {p.reference_no ?? "—"}
@@ -712,7 +712,7 @@ export default function PurchasesScreen({ user }: Props) {
                         </button>
                         <button
                           onClick={() => handleCancel(p)}
-                          className="px-2.5 py-1 text-xs bg-[#1A2A44] hover:bg-red-500/10 border border-[#1E3050] hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                          className="px-2.5 py-1 text-xs bg-[var(--bg-raised)] hover:bg-red-500/10 border border-[var(--bd-base)] hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -721,14 +721,14 @@ export default function PurchasesScreen({ user }: Props) {
                     {p.status === "received" && (
                       <button
                         onClick={() => setVoiding(p)}
-                        className="px-2.5 py-1 text-xs bg-[#1A2A44] hover:bg-red-500/10 border border-[#1E3050] hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                        className="px-2.5 py-1 text-xs bg-[var(--bg-raised)] hover:bg-red-500/10 border border-[var(--bd-base)] hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                       >
                         Void
                       </button>
                     )}
                     <button
                       onClick={() => setViewing(p)}
-                      className="px-2.5 py-1 text-xs bg-[#1A2A44] hover:bg-[#243558] border border-[#1E3050] text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                      className="px-2.5 py-1 text-xs bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] border border-[var(--bd-base)] text-slate-400 hover:text-[var(--tx-base)] rounded-lg transition-colors cursor-pointer"
                     >
                       View
                     </button>
@@ -744,7 +744,7 @@ export default function PurchasesScreen({ user }: Props) {
       {cancelError && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-900/90 border border-red-500/30 text-red-300 text-sm px-5 py-3 rounded-xl shadow-2xl z-50">
           {cancelError}
-          <button onClick={() => setCancelError("")} className="ml-3 text-red-400 hover:text-white cursor-pointer">✕</button>
+          <button onClick={() => setCancelError("")} className="ml-3 text-red-400 hover:text-[var(--tx-base)] cursor-pointer">✕</button>
         </div>
       )}
 
