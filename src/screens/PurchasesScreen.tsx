@@ -147,180 +147,170 @@ function CreatePOModal({
 
   return (
     <Modal title="New Purchase Order" onClose={onClose} width="max-w-3xl">
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
 
-        {/* Header fields */}
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Supplier</label>
-            <select className={selCls} value={supplierId} onChange={e => setSupplierId(e.target.value)}>
-              <option value="">— None —</option>
-              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Reference / Invoice No.</label>
-            <input className={iCls} value={referenceNo} onChange={e => setReferenceNo(e.target.value)} placeholder="INV-2024-001" />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Notes</label>
-            <input className={iCls} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes…" />
-          </div>
-        </div>
+        {/* ── Scrollable body ───────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
-        {/* Product search */}
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">Add Item</label>
-          <div className="flex gap-2">
-            {/* Category filter */}
-            <CategorySelect
-              value={catId}
-              onChange={v => { setCatId(v); setShowDropdown(true); }}
-              categories={categories}
-              className={`${selCls} w-44 flex-shrink-0`}
-              placeholder="All categories"
-            />
-
-            {/* Search input */}
-            <div className="relative flex-1">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-              <input
-                className={`${iCls} pl-8`}
-                value={productSearch}
-                onChange={e => { setProductSearch(e.target.value); setShowDropdown(true); }}
-                onFocus={() => setShowDropdown(true)}
-                placeholder="Search by name, barcode or SKU…"
-                autoComplete="off"
-              />
-
-              {/* Results dropdown */}
-              {showDropdown && (searchResults.length > 0 || (productSearch.trim() && searchResults.length === 0)) && (
-                <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-[#0C1828] border border-[#1A2D45] rounded-xl shadow-2xl overflow-hidden">
-                  {searchResults.length === 0 ? (
-                    <p className="px-4 py-3 text-slate-500 text-sm">No products found</p>
-                  ) : searchResults.map(p => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onMouseDown={() => addProduct(p)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#131F35] transition-colors text-left cursor-pointer"
-                    >
-                      <div>
-                        <p className="text-white text-sm">{p.name}</p>
-                        <p className="text-slate-500 text-xs">
-                          {p.unit}
-                          {p.barcode ? ` · ${p.barcode}` : ""}
-                          {p.internal_code ? ` · ${p.internal_code}` : ""}
-                          {" · "}Cost: {fmt(p.cost_price)}
-                        </p>
-                      </div>
-                      <Plus size={14} className="text-[#14B8A6] flex-shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              )}
+          {/* Header fields */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Supplier</label>
+              <select className={selCls} value={supplierId} onChange={e => setSupplierId(e.target.value)}>
+                <option value="">— None —</option>
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Reference / Invoice No.</label>
+              <input className={iCls} value={referenceNo} onChange={e => setReferenceNo(e.target.value)} placeholder="INV-2024-001" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Notes</label>
+              <input className={iCls} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes…" />
             </div>
           </div>
 
-          {/* Category browse: show results on category select even without text */}
-          {showDropdown && !productSearch.trim() && catId && searchResults.length > 0 && (
-            <div className="mt-1 bg-[#0C1828] border border-[#1A2D45] rounded-xl shadow-2xl overflow-hidden">
-              {searchResults.map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onMouseDown={() => addProduct(p)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#131F35] transition-colors text-left cursor-pointer"
-                >
-                  <div>
-                    <p className="text-white text-sm">{p.name}</p>
-                    <p className="text-slate-500 text-xs">
-                      {p.unit}
-                      {p.barcode ? ` · ${p.barcode}` : ""}
-                      · Cost: {fmt(p.cost_price)}
-                    </p>
+          {/* Product search */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Add Item</label>
+            <div className="flex gap-2">
+              <CategorySelect
+                value={catId}
+                onChange={v => { setCatId(v); setShowDropdown(true); }}
+                categories={categories}
+                className={`${selCls} w-44 flex-shrink-0`}
+                placeholder="All categories"
+              />
+              <div className="relative flex-1">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                <input
+                  className={`${iCls} pl-8`}
+                  value={productSearch}
+                  onChange={e => { setProductSearch(e.target.value); setShowDropdown(true); }}
+                  onFocus={() => setShowDropdown(true)}
+                  placeholder="Search by name, barcode or SKU…"
+                  autoComplete="off"
+                />
+                {showDropdown && (searchResults.length > 0 || (productSearch.trim() && searchResults.length === 0)) && (
+                  <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-[#0C1828] border border-[#1A2D45] rounded-xl shadow-2xl overflow-hidden">
+                    {searchResults.length === 0 ? (
+                      <p className="px-4 py-3 text-slate-500 text-sm">No products found</p>
+                    ) : searchResults.map(p => (
+                      <button key={p.id} type="button" onMouseDown={() => addProduct(p)}
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#131F35] transition-colors text-left cursor-pointer">
+                        <div>
+                          <p className="text-white text-sm">{p.name}</p>
+                          <p className="text-slate-500 text-xs">
+                            {p.unit}
+                            {p.barcode ? ` · ${p.barcode}` : ""}
+                            {p.internal_code ? ` · ${p.internal_code}` : ""}
+                            {" · "}Cost: {fmt(p.cost_price)}
+                          </p>
+                        </div>
+                        <Plus size={14} className="text-[#14B8A6] flex-shrink-0" />
+                      </button>
+                    ))}
                   </div>
-                  <Plus size={14} className="text-[#14B8A6] flex-shrink-0" />
-                </button>
-              ))}
+                )}
+              </div>
+            </div>
+            {showDropdown && !productSearch.trim() && catId && searchResults.length > 0 && (
+              <div className="mt-1 bg-[#0C1828] border border-[#1A2D45] rounded-xl shadow-2xl overflow-hidden">
+                {searchResults.map(p => (
+                  <button key={p.id} type="button" onMouseDown={() => addProduct(p)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#131F35] transition-colors text-left cursor-pointer">
+                    <div>
+                      <p className="text-white text-sm">{p.name}</p>
+                      <p className="text-slate-500 text-xs">
+                        {p.unit}{p.barcode ? ` · ${p.barcode}` : ""} · Cost: {fmt(p.cost_price)}
+                      </p>
+                    </div>
+                    <Plus size={14} className="text-[#14B8A6] flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Line items table */}
+          {lines.length > 0 && (
+            <div className="rounded-xl border border-[#1E3050] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-[#0A1020] border-b border-[#1E3050]">
+                  <tr>
+                    {["Product", "Unit", "Qty", "Unit Cost", "Subtotal", ""].map(h => (
+                      <th key={h} className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((l, i) => {
+                    const subtotal = toDb(String(parseFloat(l.quantity || "0") * parseFloat(l.unit_cost || "0")));
+                    return (
+                      <tr key={l.product.id} className="border-b border-[#1E3050]/40">
+                        <td className="px-3 py-2.5">
+                          <p className="text-white font-medium">{l.product.name}</p>
+                          {l.product.barcode && <p className="text-slate-600 text-xs">{l.product.barcode}</p>}
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-400 text-xs">{l.product.unit}</td>
+                        <td className="px-3 py-2.5 w-24">
+                          <input type="number" min="0.01" step="any" className={iCls}
+                            value={l.quantity} onChange={e => updateLine(i, "quantity", e.target.value)} />
+                        </td>
+                        <td className="px-3 py-2.5 w-32">
+                          <input type="number" min="0" step={inputStep} className={iCls}
+                            value={l.unit_cost} onChange={e => updateLine(i, "unit_cost", e.target.value)} />
+                        </td>
+                        <td className="px-3 py-2.5 text-[#14B8A6] font-medium tabular">{fmt(subtotal)}</td>
+                        <td className="px-3 py-2.5">
+                          <button type="button" onClick={() => removeLine(i)}
+                            className="w-6 h-6 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 flex items-center justify-center transition-colors cursor-pointer">
+                            <X size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-[#0A1020] border-t border-[#1E3050]">
+                  <tr>
+                    <td colSpan={4} className="px-3 py-2.5 text-right text-sm text-slate-400 font-medium">Total</td>
+                    <td className="px-3 py-2.5 text-[#14B8A6] font-bold">{fmt(total)}</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+
+          {lines.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-[#1E3050] rounded-xl text-slate-600">
+              <Package size={32} strokeWidth={1} className="mb-2" />
+              <p className="text-sm">Search for products above to add items</p>
             </div>
           )}
         </div>
 
-        {/* Line items table */}
-        {lines.length > 0 && (
-          <div className="rounded-xl border border-[#1E3050] overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-[#0A1020] border-b border-[#1E3050]">
-                <tr>
-                  {["Product", "Unit", "Qty", "Unit Cost ($)", "Subtotal", ""].map(h => (
-                    <th key={h} className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l, i) => {
-                  const subtotal = toDb(String(parseFloat(l.quantity || "0") * parseFloat(l.unit_cost || "0")));
-                  return (
-                    <tr key={l.product.id} className="border-b border-[#1E3050]/40">
-                      <td className="px-3 py-2.5">
-                        <p className="text-white font-medium">{l.product.name}</p>
-                        {l.product.barcode && <p className="text-slate-600 text-xs">{l.product.barcode}</p>}
-                      </td>
-                      <td className="px-3 py-2.5 text-slate-400 text-xs">{l.product.unit}</td>
-                      <td className="px-3 py-2.5 w-24">
-                        <input
-                          type="number" min="0.01" step="any"
-                          className={iCls}
-                          value={l.quantity}
-                          onChange={e => updateLine(i, "quantity", e.target.value)}
-                        />
-                      </td>
-                      <td className="px-3 py-2.5 w-32">
-                        <input
-                          type="number" min="0" step={inputStep}
-                          className={iCls}
-                          value={l.unit_cost}
-                          onChange={e => updateLine(i, "unit_cost", e.target.value)}
-                        />
-                      </td>
-                      <td className="px-3 py-2.5 text-[#14B8A6] font-medium tabular">
-                        {fmt(subtotal)}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <button type="button" onClick={() => removeLine(i)}
-                          className="w-6 h-6 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 flex items-center justify-center transition-colors cursor-pointer">
-                          <X size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot className="bg-[#0A1020] border-t border-[#1E3050]">
-                <tr>
-                  <td colSpan={4} className="px-3 py-2.5 text-right text-sm text-slate-400 font-medium">Total</td>
-                  <td className="px-3 py-2.5 text-[#14B8A6] font-bold">{fmt(total)}</td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
+        {/* ── Sticky footer ─────────────────────────────────────────── */}
+        <div className="flex-shrink-0 px-6 py-4 border-t border-[#1E3050] bg-[#0C1828]">
+          {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500 text-xs">
+              {lines.length > 0 ? `${lines.length} item${lines.length > 1 ? "s" : ""} · Total: ` : ""}
+              {lines.length > 0 && <span className="text-[#14B8A6] font-semibold">{fmt(total)}</span>}
+            </span>
+            <div className="flex gap-2">
+              <button type="button" onClick={onClose}
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">
+                Cancel
+              </button>
+              <button type="submit" disabled={saving || lines.length === 0}
+                className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
+                {saving ? "Creating…" : `Create PO${lines.length > 0 ? ` · ${fmt(total)}` : ""}`}
+              </button>
+            </div>
           </div>
-        )}
-
-        {error && <p className="text-red-400 text-sm">{error}</p>}
-
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#1E3050]">
-          <button type="button" onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">
-            Cancel
-          </button>
-          <button type="submit" disabled={saving}
-            className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
-            {saving ? "Creating…" : "Create Purchase Order"}
-          </button>
         </div>
       </form>
     </Modal>

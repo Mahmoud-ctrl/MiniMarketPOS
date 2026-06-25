@@ -162,6 +162,29 @@ pub async fn receive_purchase(
     .await?;
 
     for (product_id, quantity, unit_cost) in &items {
+        // Current stock (before this receipt) and current cost for WAC calculation.
+        let (current_cost, stock_before): (i64, f64) = sqlx::query_as(
+            r#"
+            SELECT p.cost_price, COALESCE(SUM(m.quantity_delta), 0.0)
+            FROM products p
+            LEFT JOIN inventory_movements m ON m.product_id = p.id
+            WHERE p.id = $1
+            GROUP BY p.id, p.cost_price
+            "#,
+        )
+        .bind(*product_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        // Weighted average cost — fall back to purchase price when stock is zero/negative.
+        let new_cost = if stock_before <= 0.0 {
+            *unit_cost
+        } else {
+            let total_value = stock_before * current_cost as f64 + *quantity * *unit_cost as f64;
+            let total_qty   = stock_before + *quantity;
+            (total_value / total_qty).round() as i64
+        };
+
         sqlx::query(
             r#"
             INSERT INTO inventory_movements
@@ -177,8 +200,8 @@ pub async fn receive_purchase(
         .execute(&mut *tx)
         .await?;
 
-        sqlx::query("UPDATE products SET cost_price=$1 WHERE id=$2")
-            .bind(unit_cost)
+        sqlx::query("UPDATE products SET cost_price = $1 WHERE id = $2")
+            .bind(new_cost)
             .bind(product_id)
             .execute(&mut *tx)
             .await?;

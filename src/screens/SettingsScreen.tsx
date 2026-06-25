@@ -110,6 +110,11 @@ function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   return (
     <Modal title="Add User" onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-3">
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
         <Field label="Full Name" required>
           <input className={iCls} value={fullName} onChange={e => setFullName(e.target.value)} placeholder="John Smith" />
         </Field>
@@ -129,7 +134,6 @@ function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
         <Field label="Confirm PIN" required>
           <input className={iCls} type="password" inputMode="numeric" maxLength={6} value={confirmPin} onChange={e => setConfirm(e.target.value)} placeholder="••••" />
         </Field>
-        {error && <p className="text-red-400 text-sm">{error}</p>}
         <div className="flex justify-end gap-2 pt-2 border-t border-[#1E3050]">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-[#1A2A44] transition-colors cursor-pointer">Cancel</button>
           <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">

@@ -136,6 +136,7 @@ pub struct Customer {
     pub name:       String,
     pub phone:      Option<String>,
     pub email:      Option<String>,
+    pub notes:      Option<String>,
     pub points:     i64,
     pub is_active:  bool,
     pub created_at: DateTime<Utc>,
@@ -170,6 +171,7 @@ pub struct Sale {
     pub session_id:     Option<i64>,
     pub cashier_id:     i64,
     pub customer_id:    Option<i64>,
+    pub customer_name:  Option<String>,
     pub subtotal:       i64,
     pub discount:       i64,
     pub tax:            i64,
@@ -184,16 +186,18 @@ pub struct Sale {
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct SaleItem {
-    pub id:         i64,
-    pub sale_id:    i64,
-    pub product_id: i64,
-    pub quantity:   f64,
-    pub unit_price: i64,
-    pub unit_cost:  i64,
-    pub price_tier: String,
-    pub discount:   i64,
-    pub tva_amount: i64,
-    pub subtotal:   i64,
+    pub id:              i64,
+    pub sale_id:         i64,
+    pub product_id:      i64,
+    pub product_name:    String,
+    pub product_barcode: Option<String>,
+    pub quantity:        f64,
+    pub unit_price:      i64,
+    pub unit_cost:       i64,
+    pub price_tier:      String,
+    pub discount:        i64,
+    pub tva_amount:      i64,
+    pub subtotal:        i64,
 }
 
 #[derive(Debug, Serialize)]
@@ -224,6 +228,31 @@ pub struct CreateSalePayload {
     pub amount_paid:    i64,
     pub payment_method: Option<String>,
     pub notes:          Option<String>,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct CustomerWithBalance {
+    pub id:          i64,
+    pub name:        String,
+    pub phone:       Option<String>,
+    pub email:       Option<String>,
+    pub notes:       Option<String>,
+    pub points:      i64,
+    pub is_active:   bool,
+    pub created_at:  DateTime<Utc>,
+    pub balance_due: i64,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct CustomerLedgerEntry {
+    pub id:          i64,
+    pub customer_id: i64,
+    pub amount:      i64,
+    pub entry_type:  String,
+    pub sale_id:     Option<i64>,
+    pub notes:       Option<String>,
+    pub created_by:  Option<i64>,
+    pub created_at:  DateTime<Utc>,
 }
 
 // ── Inventory ─────────────────────────────────────────────────────────────────

@@ -35,16 +35,24 @@ pub async fn create_sale(
     let order_discount = payload.discount.unwrap_or(0);
     let total_amount   = subtotal - order_discount + total_tax;
     let change_given   = (payload.amount_paid - total_amount).max(0);
+    let outstanding    = total_amount - payload.amount_paid;
+    // Credit sales with unpaid balance start as "pending"; all others are "completed"
+    let status = if outstanding > 0 { "pending" } else { "completed" };
 
     // 1. Insert sale header
     let sale = sqlx::query_as::<_, Sale>(
         r#"
-        INSERT INTO sales
-            (session_id, cashier_id, customer_id,
-             subtotal, discount, tax, total_amount,
-             amount_paid, change_given, payment_method, notes)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-        RETURNING *
+        WITH inserted AS (
+            INSERT INTO sales
+                (session_id, cashier_id, customer_id,
+                 subtotal, discount, tax, total_amount,
+                 amount_paid, change_given, payment_method, status, notes)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+            RETURNING *
+        )
+        SELECT i.*, c.name AS customer_name
+        FROM inserted i
+        LEFT JOIN customers c ON c.id = i.customer_id
         "#,
     )
     .bind(payload.session_id)
@@ -57,6 +65,7 @@ pub async fn create_sale(
     .bind(payload.amount_paid)
     .bind(change_given)
     .bind(payload.payment_method.as_deref().unwrap_or("cash"))
+    .bind(status)
     .bind(payload.notes.as_deref())
     .fetch_one(&mut *tx)
     .await?;
@@ -101,6 +110,26 @@ pub async fn create_sale(
         .await?;
     }
 
+    // If linked to a customer and there's an outstanding amount, record it in the ledger
+    if let Some(customer_id) = payload.customer_id {
+        if outstanding > 0 {
+            sqlx::query(
+                r#"
+                INSERT INTO customer_ledger
+                    (customer_id, sale_id, amount, entry_type, notes, created_by)
+                VALUES ($1, $2, $3, 'credit', $4, $5)
+                "#,
+            )
+            .bind(customer_id)
+            .bind(sale.id)
+            .bind(outstanding)
+            .bind(format!("Credit for sale #{}", sale.id))
+            .bind(payload.cashier_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+
     tx.commit().await?;
 
     Ok(sale)
@@ -108,30 +137,44 @@ pub async fn create_sale(
 
 #[tauri::command]
 pub async fn get_sales(
-    state:     State<'_, AppState>,
-    date_from: Option<String>,
-    date_to:   Option<String>,
-    cashier_id: Option<i64>,
-    limit:     Option<i64>,
-    offset:    Option<i64>,
+    state:          State<'_, AppState>,
+    date_from:      Option<String>,
+    date_to:        Option<String>,
+    cashier_id:     Option<i64>,
+    limit:          Option<i64>,
+    offset:         Option<i64>,
+    barcode:        Option<String>,
+    status:         Option<String>,
+    payment_method: Option<String>,
 ) -> Result<Vec<Sale>, AppError> {
     let limit  = limit.unwrap_or(50);
     let offset = offset.unwrap_or(0);
 
     let sales = sqlx::query_as::<_, Sale>(
         r#"
-        SELECT * FROM sales
-        WHERE status = 'completed'
-          AND ($1::TIMESTAMPTZ IS NULL OR created_at >= $1::TIMESTAMPTZ)
-          AND ($2::TIMESTAMPTZ IS NULL OR created_at <= $2::TIMESTAMPTZ)
-          AND ($3::BIGINT IS NULL OR cashier_id = $3)
-        ORDER BY created_at DESC
-        LIMIT $4 OFFSET $5
+        SELECT s.*, c.name AS customer_name
+        FROM sales s
+        LEFT JOIN customers c ON c.id = s.customer_id
+        WHERE ($1::TIMESTAMPTZ IS NULL OR s.created_at >= $1::TIMESTAMPTZ)
+          AND ($2::TIMESTAMPTZ IS NULL OR s.created_at <= $2::TIMESTAMPTZ)
+          AND ($3::BIGINT IS NULL OR s.cashier_id = $3)
+          AND ($4::TEXT IS NULL OR s.status = $4)
+          AND ($5::TEXT IS NULL OR s.payment_method = $5)
+          AND ($6::TEXT IS NULL OR s.id IN (
+                SELECT si.sale_id FROM sale_items si
+                JOIN products p ON p.id = si.product_id
+                WHERE p.barcode = $6
+              ))
+        ORDER BY s.created_at DESC
+        LIMIT $7 OFFSET $8
         "#,
     )
     .bind(date_from)
     .bind(date_to)
     .bind(cashier_id)
+    .bind(status)
+    .bind(payment_method)
+    .bind(barcode)
     .bind(limit)
     .bind(offset)
     .fetch_all(&state.db)
@@ -145,17 +188,35 @@ pub async fn get_sale_by_id(
     state: State<'_, AppState>,
     id:    i64,
 ) -> Result<Option<SaleWithItems>, AppError> {
-    let sale = sqlx::query_as::<_, Sale>("SELECT * FROM sales WHERE id = $1")
-        .bind(id)
-        .fetch_optional(&state.db)
-        .await?;
+    let sale = sqlx::query_as::<_, Sale>(
+        r#"
+        SELECT s.*, c.name AS customer_name
+        FROM sales s
+        LEFT JOIN customers c ON c.id = s.customer_id
+        WHERE s.id = $1
+        "#,
+    )
+    .bind(id)
+    .fetch_optional(&state.db)
+    .await?;
 
     let Some(sale) = sale else { return Ok(None) };
 
-    let items = sqlx::query_as::<_, SaleItem>("SELECT * FROM sale_items WHERE sale_id = $1")
-        .bind(id)
-        .fetch_all(&state.db)
-        .await?;
+    let items = sqlx::query_as::<_, SaleItem>(
+        r#"
+        SELECT si.id, si.sale_id, si.product_id,
+               p.name AS product_name, p.barcode AS product_barcode,
+               si.quantity, si.unit_price, si.unit_cost,
+               si.price_tier, si.discount, si.tva_amount, si.subtotal
+        FROM sale_items si
+        JOIN products p ON p.id = si.product_id
+        WHERE si.sale_id = $1
+        ORDER BY si.id
+        "#,
+    )
+    .bind(id)
+    .fetch_all(&state.db)
+    .await?;
 
     Ok(Some(SaleWithItems { sale, items }))
 }
@@ -170,17 +231,36 @@ pub async fn void_sale(
     let mut tx = state.db.begin().await?;
 
     let sale = sqlx::query_as::<_, Sale>(
-        "UPDATE sales SET status = 'void' WHERE id = $1 AND status = 'completed' RETURNING *",
+        r#"
+        WITH updated AS (
+            UPDATE sales SET status = 'void'
+            WHERE id = $1 AND status IN ('completed', 'pending')
+            RETURNING *
+        )
+        SELECT u.*, c.name AS customer_name
+        FROM updated u
+        LEFT JOIN customers c ON c.id = u.customer_id
+        "#,
     )
     .bind(sale_id)
     .fetch_one(&mut *tx)
     .await?;
 
     // Restore stock for every item
-    let items = sqlx::query_as::<_, SaleItem>("SELECT * FROM sale_items WHERE sale_id = $1")
-        .bind(sale_id)
-        .fetch_all(&mut *tx)
-        .await?;
+    let items = sqlx::query_as::<_, SaleItem>(
+        r#"
+        SELECT si.id, si.sale_id, si.product_id,
+               p.name AS product_name, p.barcode AS product_barcode,
+               si.quantity, si.unit_price, si.unit_cost,
+               si.price_tier, si.discount, si.tva_amount, si.subtotal
+        FROM sale_items si
+        JOIN products p ON p.id = si.product_id
+        WHERE si.sale_id = $1
+        "#,
+    )
+    .bind(sale_id)
+    .fetch_all(&mut *tx)
+    .await?;
 
     for item in &items {
         sqlx::query(
@@ -198,7 +278,55 @@ pub async fn void_sale(
         .await?;
     }
 
+    // Reverse any customer ledger credit that was created for this sale
+    if let Some(customer_id) = sale.customer_id {
+        let credit_sum: Option<i64> = sqlx::query_scalar(
+            "SELECT SUM(amount) FROM customer_ledger WHERE sale_id = $1 AND entry_type = 'credit'",
+        )
+        .bind(sale_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        if let Some(credit) = credit_sum.filter(|&c| c > 0) {
+            sqlx::query(
+                r#"
+                INSERT INTO customer_ledger
+                    (customer_id, sale_id, amount, entry_type, notes, created_by)
+                VALUES ($1, $2, $3, 'reversal', $4, $5)
+                "#,
+            )
+            .bind(customer_id)
+            .bind(sale_id)
+            .bind(-credit)
+            .bind(format!("Void of sale #{sale_id}"))
+            .bind(voided_by)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+
     tx.commit().await?;
 
     Ok(sale)
+}
+
+/// Return all sales for a specific customer, newest first.
+#[tauri::command]
+pub async fn get_customer_sales(
+    state:       State<'_, AppState>,
+    customer_id: i64,
+) -> Result<Vec<Sale>, AppError> {
+    let rows = sqlx::query_as::<_, Sale>(
+        r#"
+        SELECT s.*, c.name AS customer_name
+        FROM sales s
+        LEFT JOIN customers c ON c.id = s.customer_id
+        WHERE s.customer_id = $1
+        ORDER BY s.created_at DESC
+        "#,
+    )
+    .bind(customer_id)
+    .fetch_all(&state.db)
+    .await?;
+    Ok(rows)
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BarChart3, BoxesIcon, Home, LogOut,
-  Package, QrCode, Search, Settings, Truck, Users, Zap,
+  Package, QrCode, ScrollText, Search, Settings, Truck, Users, Zap,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { Category, PriceTier, Product, User } from "../types";
@@ -10,14 +10,17 @@ import { useCurrency } from "../context/CurrencyContext";
 import CartPanel from "../components/CartPanel";
 import InventoryScreen from "./InventoryScreen";
 import PurchasesScreen from "./PurchasesScreen";
+import ReportsScreen from "./ReportsScreen";
 import SettingsScreen from "./SettingsScreen";
+import TransactionsScreen from "./TransactionsScreen";
+import CustomersScreen from "./CustomersScreen";
 
 interface Props {
   user: User;
   onLogout: () => void;
 }
 
-type Screen = "pos" | "inventory" | "purchases" | "reports" | "customers" | "settings";
+type Screen = "pos" | "inventory" | "purchases" | "reports" | "transactions" | "customers" | "settings";
 
 // fmt is provided by useCurrency — see inside POSScreen component
 
@@ -31,12 +34,13 @@ const catColor = (id: number | null) =>
   id == null ? "#475569" : CAT_COLORS[id % CAT_COLORS.length];
 
 const NAV: { id: Screen; icon: typeof Home; label: string }[] = [
-  { id: "pos",       icon: Home,     label: "POS"       },
-  { id: "inventory", icon: Package,  label: "Inventory" },
-  { id: "purchases", icon: Truck,    label: "Purchases" },
-  { id: "reports",   icon: BarChart3, label: "Reports"  },
-  { id: "customers", icon: Users,    label: "Customers" },
-  { id: "settings",  icon: Settings, label: "Settings"  },
+  { id: "pos",          icon: Home,       label: "POS"          },
+  { id: "inventory",    icon: Package,    label: "Inventory"    },
+  { id: "purchases",    icon: Truck,      label: "Purchases"    },
+  { id: "transactions", icon: ScrollText, label: "Transactions" },
+  { id: "reports",      icon: BarChart3,  label: "Reports"      },
+  { id: "customers",    icon: Users,      label: "Customers"    },
+  { id: "settings",     icon: Settings,   label: "Settings"     },
 ];
 
 export default function POSScreen({ user, onLogout }: Props) {
@@ -91,7 +95,9 @@ export default function POSScreen({ user, onLogout }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (screen !== "pos") return;
-      if (e.target !== searchRef.current && !e.ctrlKey && !e.metaKey && /^\w$/.test(e.key)) {
+      const active = document.activeElement;
+      const inInput = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement;
+      if (!inInput && e.target !== searchRef.current && !e.ctrlKey && !e.metaKey && /^\w$/.test(e.key)) {
         searchRef.current?.focus();
       }
     };
@@ -166,6 +172,12 @@ export default function POSScreen({ user, onLogout }: Props) {
         <InventoryScreen user={user} />
       ) : screen === "purchases" ? (
         <PurchasesScreen user={user} />
+      ) : screen === "transactions" ? (
+        <TransactionsScreen user={user} />
+      ) : screen === "customers" ? (
+        <CustomersScreen user={user} />
+      ) : screen === "reports" ? (
+        <ReportsScreen user={user} />
       ) : screen === "settings" ? (
         <SettingsScreen user={user} />
       ) : screen !== "pos" ? (
@@ -225,12 +237,31 @@ export default function POSScreen({ user, onLogout }: Props) {
               <div className="flex items-center gap-2 text-xs text-slate-500 border-l border-[#1A2D45] pl-4">
                 <BoxesIcon size={13} />
                 <span className="text-slate-400 font-medium">{user.full_name}</span>
-                {!sessionId && (
+                {sessionId ? (
                   <button
                     onClick={async () => {
-                      const s = await api.openCashSession(user.id, 0);
-                      setSessionId(s.id);
-                      showToast("Session opened");
+                      try {
+                        await api.closeSession(sessionId);
+                        setSessionId(null);
+                        showToast("Session closed");
+                      } catch {
+                        showToast("Failed to close session");
+                      }
+                    }}
+                    className="text-red-400 hover:text-red-300 hover:underline cursor-pointer ml-1"
+                  >
+                    Close session
+                  </button>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const s = await api.openCashSession(user.id, 0);
+                        setSessionId(s.id);
+                        showToast("Session opened");
+                      } catch {
+                        showToast("Failed to open session");
+                      }
                     }}
                     className="text-[#14B8A6] hover:underline cursor-pointer ml-1"
                   >
@@ -357,7 +388,7 @@ export default function POSScreen({ user, onLogout }: Props) {
 
           {/* ── Cart ──────────────────────────────────────────────── */}
           <CartPanel
-            cashierId={user.id}
+            user={user}
             sessionId={sessionId}
             onSaleComplete={handleSaleComplete}
           />

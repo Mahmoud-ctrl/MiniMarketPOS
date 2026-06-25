@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Category, PriceTier, Product, ProductStock, Purchase, PurchaseWithItems, Setting, Supplier, User } from "../types";
+import { CashSession, Category, Customer, CustomerLedgerEntry, CustomerWithBalance, PriceTier, Product, ProductStock, Purchase, PurchaseWithItems, Sale, SaleWithItems, Setting, Supplier, User } from "../types";
 
 interface LoginResult { user: User }
 
@@ -11,11 +11,11 @@ export const api = {
   getUsers: () =>
     invoke<User[]>("get_users"),
 
-  createUser: (username: string, full_name: string, role: string, pin: string) =>
-    invoke<User>("create_user", { username, full_name, role, pin }),
+  createUser: (username: string, fullName: string, role: string, pin: string) =>
+    invoke<User>("create_user", { username, fullName, role, pin }),
 
-  setPin: (user_id: number, new_pin: string) =>
-    invoke<void>("set_pin", { user_id, new_pin }),
+  setPin: (userId: number, newPin: string) =>
+    invoke<void>("set_pin", { userId, newPin }),
 
   // ── Products ──────────────────────────────────────────────────
   getProducts: (params?: {
@@ -26,8 +26,8 @@ export const api = {
     offset?: number;
   }) => invoke<Product[]>("get_products", {
     search:      params?.search      ?? null,
-    category_id: params?.category_id ?? null,
-    supplier_id: params?.supplier_id ?? null,
+    categoryId:  params?.category_id ?? null,
+    supplierId:  params?.supplier_id ?? null,
     limit:       params?.limit       ?? null,
     offset:      params?.offset      ?? null,
   }),
@@ -93,8 +93,8 @@ export const api = {
   createCategory: (payload: { name: string; description?: string | null; parent_id?: number | null }) =>
     invoke<Category>("create_category", { payload }),
 
-  updateCategory: (id: number, name: string | null, description: string | null, parent_id: number | null) =>
-    invoke<Category>("update_category", { id, name, description, parent_id }),
+  updateCategory: (id: number, name: string | null, description: string | null, parentId: number | null) =>
+    invoke<Category>("update_category", { id, name, description, parentId }),
 
   deleteCategory: (id: number) =>
     invoke<void>("delete_category", { id }),
@@ -111,7 +111,7 @@ export const api = {
 
   // ── Inventory ─────────────────────────────────────────────────
   getProductStock: (product_id?: number) =>
-    invoke<ProductStock[]>("get_product_stock", { product_id: product_id ?? null }),
+    invoke<ProductStock[]>("get_product_stock", { productId: product_id ?? null }),
 
   getLowStock: () =>
     invoke<ProductStock[]>("get_low_stock"),
@@ -129,7 +129,12 @@ export const api = {
     quantity: number;
     notes?: string | null;
     created_by: number;
-  }) => invoke<void>("receive_stock", args),
+  }) => invoke<void>("receive_stock", {
+    productId:  args.product_id,
+    quantity:   args.quantity,
+    notes:      args.notes ?? null,
+    createdBy:  args.created_by,
+  }),
 
   // ── Sales ─────────────────────────────────────────────────────
   createSale: (payload: {
@@ -149,7 +154,33 @@ export const api = {
     amount_paid: number;
     payment_method?: "cash" | "card" | "wallet" | "credit";
     notes?: string;
-  }) => invoke<{ id: number }>("create_sale", { payload }),
+  }) => invoke<Sale>("create_sale", { payload }),
+
+  getSales: (params?: {
+    dateFrom?: string;
+    dateTo?: string;
+    cashierId?: number;
+    limit?: number;
+    offset?: number;
+    barcode?: string;
+    status?: string;
+    paymentMethod?: string;
+  }) => invoke<Sale[]>("get_sales", {
+    dateFrom:      params?.dateFrom      ?? null,
+    dateTo:        params?.dateTo        ?? null,
+    cashierId:     params?.cashierId     ?? null,
+    limit:         params?.limit         ?? null,
+    offset:        params?.offset        ?? null,
+    barcode:       params?.barcode       ?? null,
+    status:        params?.status        ?? null,
+    paymentMethod: params?.paymentMethod ?? null,
+  }),
+
+  getSaleById: (id: number) =>
+    invoke<SaleWithItems | null>("get_sale_by_id", { id }),
+
+  voidSale: (saleId: number, voidedBy: number) =>
+    invoke<Sale>("void_sale", { saleId, voidedBy }),
 
   // ── Purchases ─────────────────────────────────────────────────
   createPurchase: (payload: {
@@ -166,7 +197,7 @@ export const api = {
     limit?: number;
     offset?: number;
   }) => invoke<Purchase[]>("get_purchases", {
-    supplier_id: params?.supplier_id ?? null,
+    supplierId:  params?.supplier_id ?? null,
     status:      params?.status      ?? null,
     limit:       params?.limit       ?? null,
     offset:      params?.offset      ?? null,
@@ -175,14 +206,14 @@ export const api = {
   getPurchaseById: (id: number) =>
     invoke<PurchaseWithItems>("get_purchase_by_id", { id }),
 
-  receivePurchase: (id: number, received_by: number) =>
-    invoke<Purchase>("receive_purchase", { id, received_by }),
+  receivePurchase: (id: number, receivedBy: number) =>
+    invoke<Purchase>("receive_purchase", { id, receivedBy }),
 
   cancelPurchase: (id: number) =>
     invoke<Purchase>("cancel_purchase", { id }),
 
-  voidPurchase: (id: number, voided_by: number) =>
-    invoke<Purchase>("void_purchase", { id, voided_by }),
+  voidPurchase: (id: number, voidedBy: number) =>
+    invoke<Purchase>("void_purchase", { id, voidedBy }),
 
   // ── Settings ──────────────────────────────────────────────────
   getSettings: () =>
@@ -192,9 +223,42 @@ export const api = {
     invoke<Setting>("update_setting", { key, value }),
 
   // ── Cash sessions ─────────────────────────────────────────────
-  openCashSession: (cashier_id: number, opening_balance: number) =>
-    invoke<{ id: number }>("open_cash_session", { cashier_id, opening_balance, notes: null }),
+  openCashSession: (cashierId: number, openingBalance: number) =>
+    invoke<CashSession>("open_cash_session", { cashierId, openingBalance, notes: null }),
 
-  getActiveSession: (cashier_id: number) =>
-    invoke<{ id: number } | null>("get_active_session", { cashier_id }),
+  closeSession: (sessionId: number) =>
+    invoke<CashSession>("close_cash_session", { sessionId, closingBalance: 0, notes: null }),
+
+  getActiveSession: (cashierId: number) =>
+    invoke<CashSession | null>("get_active_session", { cashierId }),
+
+  // ── Customers ─────────────────────────────────────────────────
+  getCustomers: () =>
+    invoke<CustomerWithBalance[]>("get_customers"),
+
+  searchCustomers: (query: string) =>
+    invoke<Customer[]>("search_customers", { query }),
+
+  createCustomer: (name: string, phone?: string | null, notes?: string | null) =>
+    invoke<Customer>("create_customer", { name, phone: phone ?? null, notes: notes ?? null }),
+
+  getCustomerLedger: (customerId: number) =>
+    invoke<CustomerLedgerEntry[]>("get_customer_ledger", { customerId }),
+
+  getCustomerSales: (customerId: number) =>
+    invoke<Sale[]>("get_customer_sales", { customerId }),
+
+  recordCustomerPayment: (args: {
+    customerId: number;
+    amount: number;
+    saleId?: number | null;
+    notes?: string | null;
+    createdBy: number;
+  }) => invoke<CustomerWithBalance>("record_customer_payment", {
+    customerId: args.customerId,
+    amount:     args.amount,
+    saleId:     args.saleId    ?? null,
+    notes:      args.notes     ?? null,
+    createdBy:  args.createdBy,
+  }),
 };

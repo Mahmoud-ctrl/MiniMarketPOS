@@ -4,4 +4,4 @@ ALTER TABLE categories
   ADD COLUMN IF NOT EXISTS parent_id BIGINT REFERENCES categories(id) ON DELETE SET NULL;
 
 ALTER TABLE categories
-  ADD CONSTRAINT IF NOT EXISTS categories_no_self_parent CHECK (parent_id != id);
+  ADD CONSTRAINT categories_no_self_parent CHECK (parent_id != id);

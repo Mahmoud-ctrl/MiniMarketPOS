@@ -1,3 +1,4 @@
+// v009: sales status check updated to allow 'pending'
 mod commands;
 mod db;
 mod error;
@@ -55,6 +56,7 @@ pub fn run() {
             commands::sales::get_sales,
             commands::sales::get_sale_by_id,
             commands::sales::void_sale,
+            commands::sales::get_customer_sales,
             // Inventory
             commands::inventory::get_product_stock,
             commands::inventory::get_low_stock,
@@ -72,6 +74,12 @@ pub fn run() {
             commands::sessions::close_cash_session,
             commands::sessions::get_active_session,
             commands::sessions::get_sessions,
+            // Customers
+            commands::customers::get_customers,
+            commands::customers::search_customers,
+            commands::customers::create_customer,
+            commands::customers::get_customer_ledger,
+            commands::customers::record_customer_payment,
             // Settings
             commands::settings::get_settings,
             commands::settings::update_setting,
