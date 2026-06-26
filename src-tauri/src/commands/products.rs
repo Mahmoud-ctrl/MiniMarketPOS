@@ -84,9 +84,9 @@ pub async fn create_product(
             item_type, unit, packaging_qty,
             cost_price, sell_price_retail, sell_price_wholesale, sell_price_special,
             tva_rate, apply_tva, apply_discount, sold_by_amount,
-            min_stock, expiry_date
+            min_stock, expiry_date, is_perishable, default_shelf_life_days
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
         RETURNING *
         "#,
     )
@@ -108,6 +108,8 @@ pub async fn create_product(
     .bind(payload.sold_by_amount.unwrap_or(false))
     .bind(payload.min_stock.unwrap_or(0.0))
     .bind(expiry)
+    .bind(payload.is_perishable.unwrap_or(false))
+    .bind(payload.default_shelf_life_days)
     .fetch_one(&state.db)
     .await?;
 
@@ -127,24 +129,26 @@ pub async fn update_product(
     let product = sqlx::query_as::<_, Product>(
         r#"
         UPDATE products SET
-            barcode              = COALESCE($1,  barcode),
-            internal_code        = COALESCE($2,  internal_code),
-            name                 = COALESCE($3,  name),
-            category_id          = COALESCE($4,  category_id),
-            supplier_id          = COALESCE($5,  supplier_id),
-            item_type            = COALESCE($6,  item_type),
-            unit                 = COALESCE($7,  unit),
-            packaging_qty        = COALESCE($8,  packaging_qty),
-            cost_price           = COALESCE($9,  cost_price),
-            sell_price_retail    = COALESCE($10, sell_price_retail),
-            sell_price_wholesale = COALESCE($11, sell_price_wholesale),
-            sell_price_special   = COALESCE($12, sell_price_special),
-            tva_rate             = COALESCE($13, tva_rate),
-            apply_tva            = COALESCE($14, apply_tva),
-            apply_discount       = COALESCE($15, apply_discount),
-            sold_by_amount       = COALESCE($16, sold_by_amount),
-            min_stock            = COALESCE($17, min_stock),
-            expiry_date          = COALESCE($18, expiry_date)
+            barcode                = COALESCE($1,  barcode),
+            internal_code          = COALESCE($2,  internal_code),
+            name                   = COALESCE($3,  name),
+            category_id            = COALESCE($4,  category_id),
+            supplier_id            = COALESCE($5,  supplier_id),
+            item_type              = COALESCE($6,  item_type),
+            unit                   = COALESCE($7,  unit),
+            packaging_qty          = COALESCE($8,  packaging_qty),
+            cost_price             = COALESCE($9,  cost_price),
+            sell_price_retail      = COALESCE($10, sell_price_retail),
+            sell_price_wholesale   = COALESCE($11, sell_price_wholesale),
+            sell_price_special     = COALESCE($12, sell_price_special),
+            tva_rate               = COALESCE($13, tva_rate),
+            apply_tva              = COALESCE($14, apply_tva),
+            apply_discount         = COALESCE($15, apply_discount),
+            sold_by_amount         = COALESCE($16, sold_by_amount),
+            min_stock              = COALESCE($17, min_stock),
+            expiry_date            = COALESCE($18, expiry_date),
+            is_perishable          = COALESCE($20, is_perishable),
+            default_shelf_life_days = COALESCE($21, default_shelf_life_days)
         WHERE id = $19
         RETURNING *
         "#,
@@ -168,6 +172,8 @@ pub async fn update_product(
     .bind(payload.min_stock)
     .bind(expiry)
     .bind(id)
+    .bind(payload.is_perishable)
+    .bind(payload.default_shelf_life_days)
     .fetch_one(&state.db)
     .await?;
 

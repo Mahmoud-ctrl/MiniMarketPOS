@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   CheckCircle, ChevronDown, Package, Plus,
   RefreshCw, Search, Truck, X, XCircle,
@@ -12,25 +13,26 @@ import { useCurrency } from "../context/CurrencyContext";
 interface Props { user: User }
 
 const fmtDate = (s: string) =>
-  new Date(s).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  new Date(s).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 // ── Status badge ───────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: Purchase["status"] }) {
+  const { t } = useTranslation();
   if (status === "pending")
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs rounded-full">
-        Pending
+        {t("purchases.badge.pending")}
       </span>
     );
   if (status === "received")
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-full">
-        <CheckCircle size={10} /> Received
+        <CheckCircle size={10} /> {t("purchases.badge.received")}
       </span>
     );
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-500/10 border border-slate-500/20 text-slate-500 text-xs rounded-full">
-      <XCircle size={10} /> Cancelled
+      <XCircle size={10} /> {t("purchases.badge.cancelled")}
     </span>
   );
 }
@@ -52,6 +54,7 @@ function CreatePOModal({
   suppliers: Supplier[]; user: User;
   onClose: () => void; onSaved: () => void;
 }) {
+  const { t } = useTranslation();
   const { fmt, fromDb, toDb, inputStep } = useCurrency();
   const [supplierId, setSupplierId] = useState("");
   const [referenceNo, setReferenceNo] = useState(() => {
@@ -76,10 +79,9 @@ function CreatePOModal({
     api.getCategories().then(setCategories).catch(console.error);
   }, []);
 
-  // Product search — covers name, barcode, and internal code on the backend
   useEffect(() => {
     if (!productSearch.trim() && !catId) { setSearchResults([]); return; }
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       api.getProducts({
         search:      productSearch.trim() || undefined,
         category_id: catId ? Number(catId) : undefined,
@@ -88,7 +90,7 @@ function CreatePOModal({
         .then(setSearchResults)
         .catch(console.error);
     }, 200);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [productSearch, catId]);
 
   const addProduct = (p: Product) => {
@@ -117,7 +119,7 @@ function CreatePOModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (lines.length === 0) { setError("Add at least one item"); return; }
+    if (lines.length === 0) { setError(t("purchases.createModal.atLeastOne")); return; }
     for (const l of lines) {
       if (!parseFloat(l.quantity) || parseFloat(l.quantity) <= 0)
         { setError(`Invalid quantity for ${l.product.name}`); return; }
@@ -146,66 +148,64 @@ function CreatePOModal({
   };
 
   return (
-    <Modal title="New Purchase Order" onClose={onClose} width="max-w-3xl">
+    <Modal title={t("purchases.createModal.title")} onClose={onClose} width="max-w-3xl">
       <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
-
-        {/* ── Scrollable body ───────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
           {/* Header fields */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Supplier</label>
+              <label className="block text-xs text-slate-400 mb-1">{t("purchases.createModal.supplier")}</label>
               <select className={selCls} value={supplierId} onChange={e => setSupplierId(e.target.value)}>
-                <option value="">— None —</option>
+                <option value="">— {t("common.none")} —</option>
                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Reference / Invoice No.</label>
+              <label className="block text-xs text-slate-400 mb-1">{t("purchases.createModal.referenceNo")}</label>
               <input className={iCls} value={referenceNo} onChange={e => setReferenceNo(e.target.value)} placeholder="INV-2024-001" />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Notes</label>
-              <input className={iCls} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes…" />
+              <label className="block text-xs text-slate-400 mb-1">{t("purchases.createModal.notes")}</label>
+              <input className={iCls} value={notes} onChange={e => setNotes(e.target.value)} placeholder={t("common.optional")} />
             </div>
           </div>
 
           {/* Product search */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Add Item</label>
+            <label className="block text-xs text-slate-400 mb-1">{t("purchases.createModal.addItem")}</label>
             <div className="flex gap-2">
               <CategorySelect
                 value={catId}
                 onChange={v => { setCatId(v); setShowDropdown(true); }}
                 categories={categories}
                 className={`${selCls} w-44 flex-shrink-0`}
-                placeholder="All categories"
+                placeholder={t("common.allCategories")}
               />
               <div className="relative flex-1">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                <Search size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
                 <input
-                  className={`${iCls} pl-8`}
+                  className={`${iCls} ps-8`}
                   value={productSearch}
                   onChange={e => { setProductSearch(e.target.value); setShowDropdown(true); }}
                   onFocus={() => setShowDropdown(true)}
-                  placeholder="Search by name, barcode or SKU…"
+                  placeholder={t("purchases.createModal.searchProduct")}
                   autoComplete="off"
                 />
                 {showDropdown && (searchResults.length > 0 || (productSearch.trim() && searchResults.length === 0)) && (
-                  <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl shadow-2xl overflow-hidden">
+                  <div className="absolute top-full start-0 end-0 z-30 mt-1 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl shadow-2xl overflow-hidden">
                     {searchResults.length === 0 ? (
-                      <p className="px-4 py-3 text-slate-500 text-sm">No products found</p>
+                      <p className="px-4 py-3 text-slate-500 text-sm">{t("purchases.createModal.noProducts")}</p>
                     ) : searchResults.map(p => (
                       <button key={p.id} type="button" onMouseDown={() => addProduct(p)}
-                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[var(--bg-card)] transition-colors text-left cursor-pointer">
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[var(--bg-card)] transition-colors text-start cursor-pointer">
                         <div>
                           <p className="text-[var(--tx-base)] text-sm">{p.name}</p>
                           <p className="text-slate-500 text-xs">
                             {p.unit}
                             {p.barcode ? ` · ${p.barcode}` : ""}
                             {p.internal_code ? ` · ${p.internal_code}` : ""}
-                            {" · "}Cost: {fmt(p.cost_price)}
+                            {" · "}{fmt(p.cost_price)}
                           </p>
                         </div>
                         <Plus size={14} className="text-[#14B8A6] flex-shrink-0" />
@@ -219,11 +219,11 @@ function CreatePOModal({
               <div className="mt-1 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl shadow-2xl overflow-hidden">
                 {searchResults.map(p => (
                   <button key={p.id} type="button" onMouseDown={() => addProduct(p)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[var(--bg-card)] transition-colors text-left cursor-pointer">
+                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[var(--bg-card)] transition-colors text-start cursor-pointer">
                     <div>
                       <p className="text-[var(--tx-base)] text-sm">{p.name}</p>
                       <p className="text-slate-500 text-xs">
-                        {p.unit}{p.barcode ? ` · ${p.barcode}` : ""} · Cost: {fmt(p.cost_price)}
+                        {p.unit}{p.barcode ? ` · ${p.barcode}` : ""} · {fmt(p.cost_price)}
                       </p>
                     </div>
                     <Plus size={14} className="text-[#14B8A6] flex-shrink-0" />
@@ -239,8 +239,15 @@ function CreatePOModal({
               <table className="w-full text-sm">
                 <thead className="bg-[var(--bg-base)] border-b border-[var(--bd-base)]">
                   <tr>
-                    {["Product", "Unit", "Qty", "Unit Cost", "Subtotal", ""].map(h => (
-                      <th key={h} className="px-3 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{h}</th>
+                    {[
+                      t("purchases.createModal.columns.product"),
+                      t("purchases.createModal.columns.unit"),
+                      t("purchases.createModal.columns.qty"),
+                      t("purchases.createModal.columns.unitCost"),
+                      t("purchases.createModal.columns.subtotal"),
+                      "",
+                    ].map((h, i) => (
+                      <th key={i} className="px-3 py-2.5 text-start text-xs font-medium text-slate-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -262,7 +269,7 @@ function CreatePOModal({
                           <input type="number" min="0" step={inputStep} className={iCls}
                             value={l.unit_cost} onChange={e => updateLine(i, "unit_cost", e.target.value)} />
                         </td>
-                        <td className="px-3 py-2.5 text-[#14B8A6] font-medium tabular">{fmt(subtotal)}</td>
+                        <td className="px-3 py-2.5 text-[#14B8A6] font-medium tabular-nums">{fmt(subtotal)}</td>
                         <td className="px-3 py-2.5">
                           <button type="button" onClick={() => removeLine(i)}
                             className="w-6 h-6 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 flex items-center justify-center transition-colors cursor-pointer">
@@ -275,8 +282,10 @@ function CreatePOModal({
                 </tbody>
                 <tfoot className="bg-[var(--bg-base)] border-t border-[var(--bd-base)]">
                   <tr>
-                    <td colSpan={4} className="px-3 py-2.5 text-right text-sm text-slate-400 font-medium">Total</td>
-                    <td className="px-3 py-2.5 text-[#14B8A6] font-bold">{fmt(total)}</td>
+                    <td colSpan={4} className="px-3 py-2.5 text-end text-sm text-slate-400 font-medium">
+                      {t("purchases.createModal.total")}
+                    </td>
+                    <td className="px-3 py-2.5 text-[#14B8A6] font-bold tabular-nums">{fmt(total)}</td>
                     <td />
                   </tr>
                 </tfoot>
@@ -287,27 +296,28 @@ function CreatePOModal({
           {lines.length === 0 && (
             <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-[var(--bd-base)] rounded-xl text-slate-600">
               <Package size={32} strokeWidth={1} className="mb-2" />
-              <p className="text-sm">Search for products above to add items</p>
+              <p className="text-sm">{t("purchases.createModal.emptyItems")}</p>
             </div>
           )}
         </div>
 
-        {/* ── Sticky footer ─────────────────────────────────────────── */}
+        {/* Sticky footer */}
         <div className="flex-shrink-0 px-6 py-4 border-t border-[var(--bd-base)] bg-[var(--bg-base)]">
           {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
           <div className="flex items-center justify-between">
             <span className="text-slate-500 text-xs">
-              {lines.length > 0 ? `${lines.length} item${lines.length > 1 ? "s" : ""} · Total: ` : ""}
-              {lines.length > 0 && <span className="text-[#14B8A6] font-semibold">{fmt(total)}</span>}
+              {lines.length > 0 && (
+                <>{lines.length} {t("purchases.createModal.columns.product").toLowerCase()} · <span className="text-[#14B8A6] font-semibold">{fmt(total)}</span></>
+              )}
             </span>
             <div className="flex gap-2">
               <button type="button" onClick={onClose}
                 className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">
-                Cancel
+                {t("common.cancel")}
               </button>
               <button type="submit" disabled={saving || lines.length === 0}
                 className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
-                {saving ? "Creating…" : `Create PO${lines.length > 0 ? ` · ${fmt(total)}` : ""}`}
+                {saving ? t("purchases.createModal.creating") : `${t("purchases.createModal.createPO")}${lines.length > 0 ? ` · ${fmt(total)}` : ""}`}
               </button>
             </div>
           </div>
@@ -321,6 +331,7 @@ function CreatePOModal({
 function ReceiveModal({
   purchase, user, onClose, onSaved,
 }: { purchase: Purchase; user: User; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation();
   const { fmt } = useCurrency();
   const [detail, setDetail] = useState<PurchaseWithItems | null>(null);
   const [saving, setSaving] = useState(false);
@@ -343,7 +354,7 @@ function ReceiveModal({
   };
 
   return (
-    <Modal title="Confirm Receipt" onClose={onClose} width="max-w-lg">
+    <Modal title={t("purchases.receiveModal.title")} onClose={onClose} width="max-w-lg">
       <div className="p-6 space-y-4">
         <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-4 py-3 space-y-0.5">
           <p className="text-[var(--tx-base)] font-medium">
@@ -359,19 +370,19 @@ function ReceiveModal({
             <table className="w-full">
               <thead className="bg-[var(--bg-base)] border-b border-[var(--bd-base)]">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs text-slate-500 uppercase">Product</th>
-                  <th className="px-3 py-2 text-right text-xs text-slate-500 uppercase">Qty</th>
-                  <th className="px-3 py-2 text-right text-xs text-slate-500 uppercase">Unit Cost</th>
+                  <th className="px-3 py-2 text-start text-xs text-slate-500 uppercase">{t("purchases.createModal.columns.product")}</th>
+                  <th className="px-3 py-2 text-end text-xs text-slate-500 uppercase">{t("purchases.createModal.columns.qty")}</th>
+                  <th className="px-3 py-2 text-end text-xs text-slate-500 uppercase">{t("purchases.createModal.columns.unitCost")}</th>
                 </tr>
               </thead>
               <tbody>
                 {detail.items.map((item: PurchaseItem) => (
                   <tr key={item.id} className="border-b border-[var(--bd-base)]/40">
                     <td className="px-3 py-2.5 text-[var(--tx-base)]">{item.product_name}</td>
-                    <td className="px-3 py-2.5 text-right text-slate-400 tabular">
+                    <td className="px-3 py-2.5 text-end text-slate-400 tabular-nums">
                       {item.quantity} {item.unit}
                     </td>
-                    <td className="px-3 py-2.5 text-right text-[#14B8A6] tabular">
+                    <td className="px-3 py-2.5 text-end text-[#14B8A6] tabular-nums">
                       {fmt(item.unit_cost)}
                     </td>
                   </tr>
@@ -384,8 +395,8 @@ function ReceiveModal({
         )}
 
         <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3 text-xs text-emerald-400 space-y-1">
-          <p>✓ Stock will be added for all items</p>
-          <p>✓ Product cost prices will update to delivery unit costs</p>
+          <p>✓ {t("purchases.receiveModal.stockAdded")}</p>
+          <p>✓ {t("purchases.receiveModal.priceUpdate")}</p>
         </div>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
@@ -393,11 +404,11 @@ function ReceiveModal({
         <div className="flex justify-end gap-2 pt-1 border-t border-[var(--bd-base)]">
           <button onClick={onClose}
             className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">
-            Cancel
+            {t("common.cancel")}
           </button>
           <button onClick={handleConfirm} disabled={saving || !detail}
             className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-[var(--tx-base)] font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
-            {saving ? "Receiving…" : "Confirm Receipt"}
+            {saving ? t("purchases.receiveModal.confirming") : t("purchases.receiveModal.confirm")}
           </button>
         </div>
       </div>
@@ -407,6 +418,7 @@ function ReceiveModal({
 
 // ── Detail Modal ───────────────────────────────────────────────────────────────
 function DetailModal({ purchase, onClose }: { purchase: Purchase; onClose: () => void }) {
+  const { t } = useTranslation();
   const { fmt } = useCurrency();
   const [detail, setDetail] = useState<PurchaseWithItems | null>(null);
 
@@ -418,29 +430,24 @@ function DetailModal({ purchase, onClose }: { purchase: Purchase; onClose: () =>
     <Modal title={`Purchase Order #${purchase.id}`} onClose={onClose} width="max-w-lg">
       <div className="p-6 space-y-4">
         <div className="grid grid-cols-2 gap-3 text-sm">
+          {[
+            { label: t("purchases.detail.supplier"), value: purchase.supplier_name ?? "—" },
+            { label: t("purchases.detail.reference"), value: purchase.reference_no ?? "—" },
+            { label: t("purchases.detail.created"),  value: fmtDate(purchase.created_at) },
+            { label: t("purchases.detail.received"), value: purchase.received_at ? fmtDate(purchase.received_at) : "—" },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">{label}</p>
+              <p className="text-[var(--tx-base)]">{value}</p>
+            </div>
+          ))}
           <div>
-            <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Supplier</p>
-            <p className="text-[var(--tx-base)]">{purchase.supplier_name ?? "—"}</p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Reference</p>
-            <p className="text-[var(--tx-base)]">{purchase.reference_no ?? "—"}</p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Created</p>
-            <p className="text-[var(--tx-base)]">{fmtDate(purchase.created_at)}</p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Received</p>
-            <p className="text-[var(--tx-base)]">{purchase.received_at ? fmtDate(purchase.received_at) : "—"}</p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Status</p>
+            <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">{t("purchases.detail.status")}</p>
             <StatusBadge status={purchase.status} />
           </div>
           <div>
-            <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Total</p>
-            <p className="text-[#14B8A6] font-bold">{fmt(purchase.total_amount)}</p>
+            <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">{t("purchases.detail.total")}</p>
+            <p className="text-[#14B8A6] font-bold tabular-nums">{fmt(purchase.total_amount)}</p>
           </div>
         </div>
 
@@ -455,19 +462,19 @@ function DetailModal({ purchase, onClose }: { purchase: Purchase; onClose: () =>
             <table className="w-full">
               <thead className="bg-[var(--bg-base)] border-b border-[var(--bd-base)]">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs text-slate-500 uppercase">Product</th>
-                  <th className="px-3 py-2 text-right text-xs text-slate-500 uppercase">Qty</th>
-                  <th className="px-3 py-2 text-right text-xs text-slate-500 uppercase">Unit Cost</th>
-                  <th className="px-3 py-2 text-right text-xs text-slate-500 uppercase">Subtotal</th>
+                  <th className="px-3 py-2 text-start text-xs text-slate-500 uppercase">{t("purchases.createModal.columns.product")}</th>
+                  <th className="px-3 py-2 text-end text-xs text-slate-500 uppercase">{t("purchases.createModal.columns.qty")}</th>
+                  <th className="px-3 py-2 text-end text-xs text-slate-500 uppercase">{t("purchases.createModal.columns.unitCost")}</th>
+                  <th className="px-3 py-2 text-end text-xs text-slate-500 uppercase">{t("purchases.createModal.columns.subtotal")}</th>
                 </tr>
               </thead>
               <tbody>
                 {detail.items.map((item: PurchaseItem) => (
                   <tr key={item.id} className="border-b border-[var(--bd-base)]/40">
                     <td className="px-3 py-2.5 text-[var(--tx-base)]">{item.product_name}</td>
-                    <td className="px-3 py-2.5 text-right text-slate-400 tabular">{item.quantity} {item.unit}</td>
-                    <td className="px-3 py-2.5 text-right text-slate-300 tabular">{fmt(item.unit_cost)}</td>
-                    <td className="px-3 py-2.5 text-right text-[#14B8A6] tabular">{fmt(item.subtotal)}</td>
+                    <td className="px-3 py-2.5 text-end text-slate-400 tabular-nums">{item.quantity} {item.unit}</td>
+                    <td className="px-3 py-2.5 text-end text-slate-300 tabular-nums">{fmt(item.unit_cost)}</td>
+                    <td className="px-3 py-2.5 text-end text-[#14B8A6] tabular-nums">{fmt(item.subtotal)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -480,7 +487,7 @@ function DetailModal({ purchase, onClose }: { purchase: Purchase; onClose: () =>
         <div className="flex justify-end pt-1 border-t border-[var(--bd-base)]">
           <button onClick={onClose}
             className="px-5 py-2 bg-[var(--bg-card)] hover:bg-[var(--bg-raised)] text-slate-300 text-sm rounded-xl transition-colors cursor-pointer">
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>
@@ -492,6 +499,7 @@ function DetailModal({ purchase, onClose }: { purchase: Purchase; onClose: () =>
 function VoidModal({
   purchase, user, onClose, onSaved,
 }: { purchase: Purchase; user: User; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState("");
 
@@ -508,26 +516,24 @@ function VoidModal({
   };
 
   return (
-    <Modal title="Void Purchase" onClose={onClose} width="max-w-sm">
+    <Modal title={t("purchases.voidModal.title")} onClose={onClose} width="max-w-sm">
       <div className="p-6 space-y-4">
         <p className="text-slate-300 text-sm">
-          Void PO #{purchase.id}
-          {purchase.reference_no ? ` (${purchase.reference_no})` : ""}?
-          This will reverse all stock movements from this delivery.
+          PO #{purchase.id}{purchase.reference_no ? ` (${purchase.reference_no})` : ""}?
         </p>
         <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3 text-xs text-amber-400 space-y-1">
-          <p>⚠ Stock will be deducted for all items</p>
-          <p>⚠ Product cost prices will not be reverted automatically</p>
+          <p>⚠ {t("purchases.voidModal.stockDeducted")}</p>
+          <p>⚠ {t("purchases.voidModal.priceNotReverted")}</p>
         </div>
         {error && <p className="text-red-400 text-sm">{error}</p>}
         <div className="flex justify-end gap-2 pt-1 border-t border-[var(--bd-base)]">
           <button onClick={onClose}
             className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">
-            Cancel
+            {t("common.cancel")}
           </button>
           <button onClick={handleVoid} disabled={saving}
             className="px-5 py-2 bg-red-500 hover:bg-red-600 text-[var(--tx-base)] font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
-            {saving ? "Voiding…" : "Void Purchase"}
+            {saving ? t("purchases.voidModal.voiding") : t("purchases.voidModal.void")}
           </button>
         </div>
       </div>
@@ -537,6 +543,7 @@ function VoidModal({
 
 // ── Main Screen ────────────────────────────────────────────────────────────────
 export default function PurchasesScreen({ user }: Props) {
+  const { t } = useTranslation();
   const { fmt } = useCurrency();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -596,6 +603,13 @@ export default function PurchasesScreen({ user }: Props) {
     cancelled: purchases.filter(p => p.status === "cancelled").length,
   };
 
+  const statusKeys: { id: "all" | "pending" | "received" | "cancelled"; labelKey: string }[] = [
+    { id: "all",       labelKey: "purchases.status.all"       },
+    { id: "pending",   labelKey: "purchases.status.pending"   },
+    { id: "received",  labelKey: "purchases.status.received"  },
+    { id: "cancelled", labelKey: "purchases.status.cancelled" },
+  ];
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
 
@@ -603,36 +617,36 @@ export default function PurchasesScreen({ user }: Props) {
       <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--bd-base)] bg-[var(--bg-base)]">
         <div>
           <h1 className="text-[var(--tx-base)] font-semibold text-base flex items-center gap-2">
-            <Truck size={16} className="text-[#14B8A6]" /> Purchases
+            <Truck size={16} className="text-[#14B8A6]" /> {t("purchases.title")}
           </h1>
-          <p className="text-slate-500 text-xs">{purchases.length} orders</p>
+          <p className="text-slate-500 text-xs">{t("purchases.orders", { count: purchases.length })}</p>
         </div>
         <div className="flex-1" />
 
         {/* Status filter pills */}
         <div className="flex items-center gap-1">
-          {(["all", "pending", "received", "cancelled"] as const).map(s => (
+          {statusKeys.map(({ id, labelKey }) => (
             <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer capitalize ${
-                statusFilter === s
+              key={id}
+              onClick={() => setStatusFilter(id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                statusFilter === id
                   ? "bg-[#14B8A6]/15 text-[#14B8A6] border border-[#14B8A6]/30"
                   : "text-slate-500 hover:text-slate-300 border border-transparent hover:border-[var(--bd-base)]"
               }`}
             >
-              {s === "all" ? "All" : `${s.charAt(0).toUpperCase() + s.slice(1)} ${counts[s] > 0 ? `(${counts[s]})` : ""}`}
+              {t(labelKey)}{id !== "all" && counts[id] > 0 ? ` (${counts[id]})` : ""}
             </button>
           ))}
         </div>
 
         {/* Search */}
         <div className="relative w-48">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+          <Search size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search…"
-            className="w-full pl-8 pr-3 py-1.5 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
+            placeholder={t("purchases.searchPlaceholder")}
+            className="w-full ps-8 pe-3 py-1.5 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
           />
         </div>
 
@@ -644,7 +658,7 @@ export default function PurchasesScreen({ user }: Props) {
           onClick={() => setCreating(true)}
           className="flex items-center gap-1.5 px-4 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors cursor-pointer"
         >
-          <Plus size={15} /> New PO
+          <Plus size={15} /> {t("purchases.newPO")}
         </button>
       </div>
 
@@ -653,8 +667,16 @@ export default function PurchasesScreen({ user }: Props) {
         <table className="w-full text-sm min-w-[800px]">
           <thead className="sticky top-0 bg-[var(--bg-base)] border-b border-[var(--bd-base)] z-10">
             <tr>
-              {["Date", "Supplier", "Reference", "Items", "Total", "Status", ""].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{h}</th>
+              {[
+                t("purchases.columns.date"),
+                t("purchases.columns.supplier"),
+                t("purchases.columns.reference"),
+                t("purchases.columns.items"),
+                t("purchases.columns.total"),
+                t("purchases.columns.status"),
+                "",
+              ].map((h, i) => (
+                <th key={i} className="px-4 py-3 text-start text-xs font-medium text-slate-500 uppercase tracking-wider">{h}</th>
               ))}
             </tr>
           </thead>
@@ -673,7 +695,7 @@ export default function PurchasesScreen({ user }: Props) {
               <tr>
                 <td colSpan={7} className="text-center py-16 text-slate-600">
                   <Package size={36} strokeWidth={1} className="mx-auto mb-2" />
-                  <p>{search || statusFilter !== "all" ? "No results" : "No purchase orders yet"}</p>
+                  <p>{search || statusFilter !== "all" ? t("purchases.noResults") : t("purchases.noOrders")}</p>
                 </td>
               </tr>
             ) : filtered.map(p => (
@@ -688,13 +710,12 @@ export default function PurchasesScreen({ user }: Props) {
                   {p.reference_no ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-slate-400 text-xs">
-                  {/* We don't load items in list — show total instead */}
-                  <ChevronDown size={12} className="inline mr-1 text-slate-600" />
+                  <ChevronDown size={12} className="inline me-1 text-slate-600" />
                   <button onClick={() => setViewing(p)} className="text-[#14B8A6] hover:underline cursor-pointer text-xs">
-                    View items
+                    {t("purchases.viewItems")}
                   </button>
                 </td>
-                <td className="px-4 py-3 text-[#14B8A6] font-medium tabular">
+                <td className="px-4 py-3 text-[#14B8A6] font-medium tabular-nums">
                   {fmt(p.total_amount)}
                 </td>
                 <td className="px-4 py-3">
@@ -708,13 +729,13 @@ export default function PurchasesScreen({ user }: Props) {
                           onClick={() => setReceiving(p)}
                           className="px-2.5 py-1 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-lg transition-colors cursor-pointer"
                         >
-                          Receive
+                          {t("purchases.actions.receive")}
                         </button>
                         <button
                           onClick={() => handleCancel(p)}
                           className="px-2.5 py-1 text-xs bg-[var(--bg-raised)] hover:bg-red-500/10 border border-[var(--bd-base)] hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                         >
-                          Cancel
+                          {t("purchases.actions.cancel")}
                         </button>
                       </>
                     )}
@@ -723,14 +744,14 @@ export default function PurchasesScreen({ user }: Props) {
                         onClick={() => setVoiding(p)}
                         className="px-2.5 py-1 text-xs bg-[var(--bg-raised)] hover:bg-red-500/10 border border-[var(--bd-base)] hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                       >
-                        Void
+                        {t("purchases.actions.void")}
                       </button>
                     )}
                     <button
                       onClick={() => setViewing(p)}
                       className="px-2.5 py-1 text-xs bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] border border-[var(--bd-base)] text-slate-400 hover:text-[var(--tx-base)] rounded-lg transition-colors cursor-pointer"
                     >
-                      View
+                      {t("purchases.actions.view")}
                     </button>
                   </div>
                 </td>
@@ -742,9 +763,9 @@ export default function PurchasesScreen({ user }: Props) {
 
       {/* Cancel error toast */}
       {cancelError && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-900/90 border border-red-500/30 text-red-300 text-sm px-5 py-3 rounded-xl shadow-2xl z-50">
+        <div className="fixed bottom-6 start-1/2 -translate-x-1/2 bg-red-900/90 border border-red-500/30 text-red-300 text-sm px-5 py-3 rounded-xl shadow-2xl z-50">
           {cancelError}
-          <button onClick={() => setCancelError("")} className="ml-3 text-red-400 hover:text-[var(--tx-base)] cursor-pointer">✕</button>
+          <button onClick={() => setCancelError("")} className="ms-3 text-red-400 hover:text-[var(--tx-base)] cursor-pointer">✕</button>
         </div>
       )}
 

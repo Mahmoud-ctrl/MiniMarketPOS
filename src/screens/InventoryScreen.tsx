@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  AlertTriangle, Package, Pencil, Plus, RefreshCw,
-  Search, Snowflake, Trash2, TrendingDown,
+  AlertTriangle, ChevronDown, Flame, Package,
+  Pencil, Plus, RefreshCw, Search, Snowflake, Trash2, TrendingDown,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { generateEAN13 } from "../lib/barcode";
-import { Category, ProductStock, Supplier, User } from "../types";
+import { Category, PerishableAlert, ProductStock, Supplier, User } from "../types";
 import Modal from "../components/Modal";
 import CategorySelect from "../components/CategorySelect";
 import AddProductModal from "./AddProductModal";
@@ -17,12 +18,21 @@ const orNull = (s: string) => s.trim() || null;
 const toPct  = (f: number) => (f * 100).toFixed(1);
 
 function stockColor(qty: number, min: number) {
-  if (qty <= 0)   return "text-red-400";
+  if (qty <= 0)              return "text-red-400";
   if (qty <= min && min > 0) return "text-amber-400";
   return "text-emerald-400";
 }
 
-// ── Product form state ─────────────────────────────────────────────────────────
+function expiryBadge(days: number | null): React.ReactNode {
+  if (days === null) return null;
+  if (days < 0)  return <span className="inline-flex items-center px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 text-red-400 text-[10px] rounded-full font-medium">Expired</span>;
+  if (days === 0) return <span className="inline-flex items-center px-1.5 py-0.5 bg-red-500/15 border border-red-500/25 text-red-400 text-[10px] rounded-full font-medium">Today</span>;
+  if (days === 1) return <span className="inline-flex items-center px-1.5 py-0.5 bg-orange-500/15 border border-orange-500/25 text-orange-400 text-[10px] rounded-full font-medium">Tomorrow</span>;
+  if (days <= 3)  return <span className="inline-flex items-center px-1.5 py-0.5 bg-amber-500/15 border border-amber-500/25 text-amber-400 text-[10px] rounded-full font-medium">{days}d</span>;
+  return <span className="inline-flex items-center px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] rounded-full font-medium">{days}d</span>;
+}
+
+// ── Product form state ──────────────────────────────────────────────────────────
 interface PF {
   barcode: string; internal_code: string; name: string;
   category_id: string; supplier_id: string;
@@ -31,56 +41,60 @@ interface PF {
   sell_price_wholesale: string; sell_price_special: string;
   tva_rate: string; apply_tva: boolean; apply_discount: boolean; sold_by_amount: boolean;
   min_stock: string; expiry_date: string;
+  is_perishable: boolean; default_shelf_life_days: string;
 }
-
 
 function stockToPF(p: ProductStock, fromDb: (n: number) => string): PF {
   return {
-    barcode:              p.barcode              ?? "",
-    internal_code:        p.internal_code        ?? "",
-    name:                 p.name,
-    category_id:          p.category_id          != null ? String(p.category_id) : "",
-    supplier_id:          p.supplier_id          != null ? String(p.supplier_id) : "",
-    item_type:            p.item_type,
-    unit:                 p.unit,
-    packaging_qty:        String(p.packaging_qty),
-    cost_price:           fromDb(p.cost_price),
-    sell_price_retail:    fromDb(p.sell_price_retail),
-    sell_price_wholesale: fromDb(p.sell_price_wholesale),
-    sell_price_special:   fromDb(p.sell_price_special),
-    tva_rate:             toPct(p.tva_rate),
-    apply_tva:            p.apply_tva,
-    apply_discount:       p.apply_discount,
-    sold_by_amount:       p.sold_by_amount,
-    min_stock:            String(p.min_stock),
-    expiry_date:          p.expiry_date ?? "",
+    barcode:               p.barcode              ?? "",
+    internal_code:         p.internal_code        ?? "",
+    name:                  p.name,
+    category_id:           p.category_id          != null ? String(p.category_id) : "",
+    supplier_id:           p.supplier_id          != null ? String(p.supplier_id) : "",
+    item_type:             p.item_type,
+    unit:                  p.unit,
+    packaging_qty:         String(p.packaging_qty),
+    cost_price:            fromDb(p.cost_price),
+    sell_price_retail:     fromDb(p.sell_price_retail),
+    sell_price_wholesale:  fromDb(p.sell_price_wholesale),
+    sell_price_special:    fromDb(p.sell_price_special),
+    tva_rate:              toPct(p.tva_rate),
+    apply_tva:             p.apply_tva,
+    apply_discount:        p.apply_discount,
+    sold_by_amount:        p.sold_by_amount,
+    min_stock:             String(p.min_stock),
+    expiry_date:           p.expiry_date ?? "",
+    is_perishable:         p.is_perishable,
+    default_shelf_life_days: p.default_shelf_life_days != null ? String(p.default_shelf_life_days) : "",
   };
 }
 
 function pfToPayload(f: PF, toDb: (s: string) => number) {
   return {
-    barcode:              orNull(f.barcode),
-    internal_code:        orNull(f.internal_code),
-    name:                 f.name.trim(),
-    category_id:          f.category_id ? Number(f.category_id) : null,
-    supplier_id:          f.supplier_id ? Number(f.supplier_id) : null,
-    item_type:            f.item_type   || "consumable",
-    unit:                 f.unit        || "pcs",
-    packaging_qty:        parseInt(f.packaging_qty || "1"),
-    cost_price:           toDb(f.cost_price),
-    sell_price_retail:    toDb(f.sell_price_retail),
-    sell_price_wholesale: toDb(f.sell_price_wholesale),
-    sell_price_special:   toDb(f.sell_price_special),
-    tva_rate:             parseFloat(f.tva_rate || "0") / 100,
-    apply_tva:            f.apply_tva,
-    apply_discount:       f.apply_discount,
-    sold_by_amount:       f.sold_by_amount,
-    min_stock:            parseFloat(f.min_stock || "0"),
-    expiry_date:          orNull(f.expiry_date),
+    barcode:               orNull(f.barcode),
+    internal_code:         orNull(f.internal_code),
+    name:                  f.name.trim(),
+    category_id:           f.category_id ? Number(f.category_id) : null,
+    supplier_id:           f.supplier_id ? Number(f.supplier_id) : null,
+    item_type:             f.item_type   || "consumable",
+    unit:                  f.unit        || "pcs",
+    packaging_qty:         parseInt(f.packaging_qty || "1"),
+    cost_price:            toDb(f.cost_price),
+    sell_price_retail:     toDb(f.sell_price_retail),
+    sell_price_wholesale:  toDb(f.sell_price_wholesale),
+    sell_price_special:    toDb(f.sell_price_special),
+    tva_rate:              parseFloat(f.tva_rate || "0") / 100,
+    apply_tva:             f.apply_tva,
+    apply_discount:        f.apply_discount,
+    sold_by_amount:        f.sold_by_amount,
+    min_stock:             parseFloat(f.min_stock || "0"),
+    expiry_date:           orNull(f.expiry_date),
+    is_perishable:         f.is_perishable,
+    default_shelf_life_days: f.default_shelf_life_days ? parseInt(f.default_shelf_life_days) : null,
   };
 }
 
-// ── Reusable input ─────────────────────────────────────────────────────────────
+// ── Shared field + toggle ───────────────────────────────────────────────────────
 function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
     <div>
@@ -92,17 +106,12 @@ function Field({ label, children, required }: { label: string; children: React.R
   );
 }
 
-const iCls = "w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors";
+const iCls   = "w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors";
 const selCls = iCls + " cursor-pointer";
 
-// ── Toggle ─────────────────────────────────────────────────────────────────────
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className="flex items-center gap-2 cursor-pointer group"
-    >
+    <button type="button" onClick={() => onChange(!checked)} className="flex items-center gap-2 cursor-pointer group">
       <div className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${checked ? "bg-[#14B8A6]" : "bg-[var(--bg-raised)] border border-[var(--bd-base)]"}`}>
         <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${checked ? "left-4" : "left-0.5"}`} />
       </div>
@@ -111,7 +120,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
   );
 }
 
-// ── Product Form Modal ─────────────────────────────────────────────────────────
+// ── Product Form Modal (edit) ───────────────────────────────────────────────────
 function ProductFormModal({
   initial, editId, categories, suppliers, onClose, onSaved,
 }: {
@@ -120,16 +129,15 @@ function ProductFormModal({
   onClose: () => void; onSaved: () => void;
 }) {
   const { symbol, fmtNum, toDb, inputStep } = useCurrency();
-  const [f, setF]       = useState<PF>(initial);
+  const [f, setF]           = useState<PF>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState("");
 
   const set = (key: keyof PF) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setF(prev => ({ ...prev, [key]: e.target.value }));
 
-  // Live pricing strip
-  const cost      = parseFloat(f.cost_price       || "0");
-  const retail    = parseFloat(f.sell_price_retail || "0");
+  const cost   = parseFloat(f.cost_price       || "0");
+  const retail = parseFloat(f.sell_price_retail || "0");
   const showStrip = cost > 0 && retail > 0;
   const margin    = showStrip ? ((retail - cost) / cost) * 100 : 0;
   const profit    = showStrip ? retail - cost : 0;
@@ -141,33 +149,25 @@ function ProductFormModal({
     setSaving(true); setError("");
     try {
       const payload = pfToPayload(f, toDb);
-      if (editId != null) {
-        await api.updateProduct(editId, payload);
-      } else {
-        await api.createProduct(payload);
-      }
+      if (editId != null) await api.updateProduct(editId, payload);
+      else                await api.createProduct(payload as Parameters<typeof api.createProduct>[0]);
       onSaved();
     } catch (err: unknown) {
       const raw = (err as { message?: string })?.message ?? String(err);
-      const msg = raw.includes("products_barcode_key")
-        ? "Barcode already in use — use a different one or leave it blank."
-        : raw.includes("products_internal_code_key")
-        ? "Internal code already in use — use a different one or leave it blank."
-        : raw;
+      const msg = raw.includes("products_barcode_key")       ? "Barcode already in use."
+                : raw.includes("products_internal_code_key") ? "Internal code already in use."
+                : raw;
       setError(msg);
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   return (
     <Modal title={editId != null ? "Edit Product" : "Add Product"} onClose={onClose} width="max-w-2xl">
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
-        {/* ── Identity ── */}
+        {/* Identity */}
         <section className="space-y-3">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Identity</p>
-
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
               <Field label="Product Name" required>
@@ -178,16 +178,12 @@ function ProductFormModal({
               <input className={iCls} value={f.unit} onChange={set("unit")} placeholder="pcs / kg / bottle" />
             </Field>
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             <Field label="Barcode">
               <div className="flex gap-2">
                 <input className={iCls} value={f.barcode} onChange={set("barcode")} placeholder="EAN-13 / UPC" />
-                <button
-                  type="button"
-                  onClick={() => setF(p => ({ ...p, barcode: generateEAN13() }))}
-                  className="flex-shrink-0 px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5"
-                >
+                <button type="button" onClick={() => setF(p => ({ ...p, barcode: generateEAN13() }))}
+                  className="flex-shrink-0 px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5">
                   <RefreshCw size={12} /> Gen
                 </button>
               </div>
@@ -196,15 +192,9 @@ function ProductFormModal({
               <input className={iCls} value={f.internal_code} onChange={set("internal_code")} placeholder="SKU / store code" />
             </Field>
           </div>
-
           <div className="grid grid-cols-3 gap-3">
             <Field label="Category">
-              <CategorySelect
-                value={f.category_id}
-                onChange={v => setF(prev => ({ ...prev, category_id: v }))}
-                categories={categories}
-                className={selCls}
-              />
+              <CategorySelect value={f.category_id} onChange={v => setF(prev => ({ ...prev, category_id: v }))} categories={categories} className={selCls} />
             </Field>
             <Field label="Supplier">
               <select className={selCls} value={f.supplier_id} onChange={set("supplier_id")}>
@@ -222,10 +212,9 @@ function ProductFormModal({
           </div>
         </section>
 
-        {/* ── Pricing ── */}
+        {/* Pricing */}
         <section className="space-y-3">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Pricing ({symbol})</p>
-
           {showStrip && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl text-xs">
               <span className="text-slate-400">Cost <strong className="text-[var(--tx-base)]">{fmtNum(cost)}</strong></span>
@@ -237,7 +226,6 @@ function ProductFormModal({
               <span className="text-slate-400">Profit <strong className={profit >= 0 ? "text-emerald-400" : "text-red-400"}>{fmtNum(profit)}</strong></span>
             </div>
           )}
-
           <div className="grid grid-cols-4 gap-3">
             <Field label="Cost Price">
               <input className={iCls} type="number" min="0" step={inputStep} value={f.cost_price} onChange={set("cost_price")} placeholder="0" />
@@ -252,7 +240,6 @@ function ProductFormModal({
               <input className={iCls} type="number" min="0" step={inputStep} value={f.sell_price_special} onChange={set("sell_price_special")} placeholder="0" />
             </Field>
           </div>
-
           <div className="flex items-end gap-3">
             <div className="w-36">
               <Field label="TVA Rate (%)">
@@ -267,7 +254,7 @@ function ProductFormModal({
           </div>
         </section>
 
-        {/* ── Stock ── */}
+        {/* Stock */}
         <section className="space-y-3">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Stock</p>
           <div className="grid grid-cols-3 gap-3">
@@ -283,6 +270,31 @@ function ProductFormModal({
           </div>
         </section>
 
+        {/* Freshness */}
+        <section className="space-y-3">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Freshness</p>
+          <div className="flex items-center gap-6">
+            <Toggle checked={f.is_perishable} onChange={v => setF(p => ({ ...p, is_perishable: v }))} label="Perishable item" />
+          </div>
+          {f.is_perishable && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Typical shelf life (days)">
+                <input
+                  className={iCls} type="number" min="1" step="1"
+                  value={f.default_shelf_life_days}
+                  onChange={set("default_shelf_life_days")}
+                  placeholder="Leave blank — system learns from waste logs"
+                />
+              </Field>
+              <div className="flex items-end pb-1">
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  The system updates this automatically every time you log waste for this product.
+                </p>
+              </div>
+            </div>
+          )}
+        </section>
+
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
@@ -295,7 +307,6 @@ function ProductFormModal({
             {saving ? "Saving…" : editId != null ? "Save Changes" : "Add Product"}
           </button>
         </div>
-
       </form>
     </Modal>
   );
@@ -329,9 +340,7 @@ function AdjustModal({
       onSaved();
     } catch (err: unknown) {
       setError((err as { message?: string })?.message ?? String(err));
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   return (
@@ -343,7 +352,6 @@ function AdjustModal({
             {product.stock_qty} {product.unit} in stock
           </p>
         </div>
-
         <Field label="Movement Type">
           <select className={selCls} value={type} onChange={e => setType(e.target.value)}>
             <option value="opening">Opening stock</option>
@@ -353,7 +361,6 @@ function AdjustModal({
             <option value="return_out">Return out (to supplier)</option>
           </select>
         </Field>
-
         <Field label="Quantity delta (use − for removal)">
           <div className="space-y-2">
             <div className="flex gap-1 flex-wrap">
@@ -373,13 +380,10 @@ function AdjustModal({
             <input className={iCls} type="number" step="any" value={delta} onChange={e => setDelta(e.target.value)} placeholder="Enter custom amount" />
           </div>
         </Field>
-
         <Field label="Notes (optional)">
           <input className={iCls} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Reason for adjustment…" />
         </Field>
-
         {error && <p className="text-red-400 text-sm">{error}</p>}
-
         <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
           <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
@@ -391,25 +395,168 @@ function AdjustModal({
   );
 }
 
+// ── Waste Modal ────────────────────────────────────────────────────────────────
+function WasteModal({
+  product, userId, onClose, onSaved,
+}: { product: ProductStock; userId: number; onClose: () => void; onSaved: () => void }) {
+  const [qty, setQty]       = useState("");
+  const [notes, setNotes]   = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
+
+  const presets = [0.5, 1, 2, 5];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = parseFloat(qty);
+    if (isNaN(q) || q <= 0)              { setError("Enter a positive quantity"); return; }
+    if (q > product.stock_qty)           { setError(`Max is ${product.stock_qty} ${product.unit}`); return; }
+    setSaving(true); setError("");
+    try {
+      await api.logWaste({
+        product_id: product.product_id,
+        quantity:   q,
+        notes:      notes.trim() || null,
+        created_by: userId,
+      });
+      onSaved();
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? String(err));
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <Modal title="Log Waste" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+          <p className="text-[var(--tx-base)] font-medium">{product.name}</p>
+          <p className="text-red-400 text-sm mt-0.5 tabular">{product.stock_qty} {product.unit} in stock</p>
+        </div>
+
+        <Field label={`Quantity to write off (${product.unit})`}>
+          <div className="space-y-2">
+            <div className="flex gap-1 flex-wrap">
+              {presets.map(p => (
+                <button key={p} type="button" onClick={() => setQty(String(p))}
+                  className="px-2.5 py-1 bg-[var(--bg-card)] border border-[var(--bd-base)] hover:border-red-500/40 text-slate-300 text-xs rounded-lg transition-colors cursor-pointer">
+                  {p}
+                </button>
+              ))}
+              <button type="button" onClick={() => setQty(String(product.stock_qty))}
+                className="px-2.5 py-1 bg-[var(--bg-card)] border border-red-500/30 hover:border-red-500/60 text-red-400 text-xs rounded-lg transition-colors cursor-pointer">
+                All ({product.stock_qty})
+              </button>
+            </div>
+            <input className={iCls} type="number" step="any" min="0.01" value={qty}
+              onChange={e => setQty(e.target.value)} placeholder={`Amount in ${product.unit}`} autoFocus />
+          </div>
+        </Field>
+
+        <Field label="Reason (optional)">
+          <input className={iCls} value={notes} onChange={e => setNotes(e.target.value)}
+            placeholder="Mold, overripe, dropped…" />
+        </Field>
+
+        <p className="text-xs text-slate-500">
+          Shelf-life estimate updates automatically after each waste log.
+        </p>
+
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
+          <button type="submit" disabled={saving}
+            className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
+            {saving ? "Logging…" : "Mark as Waste"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ── Perishable Alerts Banner ───────────────────────────────────────────────────
+function PerishableBanner({ alerts, onWaste }: {
+  alerts: PerishableAlert[];
+  onWaste: (id: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const urgent  = alerts.filter(a => a.days_until_expiry !== null && a.days_until_expiry <= 1);
+  const warning = alerts.filter(a => a.days_until_expiry !== null && a.days_until_expiry > 1 && a.days_until_expiry <= 3);
+  const unknown = alerts.filter(a => a.days_until_expiry === null);
+
+  if (alerts.length === 0) return null;
+
+  return (
+    <div className="mx-6 mt-3 rounded-2xl border border-orange-500/25 bg-orange-500/8 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left cursor-pointer hover:bg-orange-500/5 transition-colors"
+      >
+        <Flame size={14} className="text-orange-400 flex-shrink-0" />
+        <span className="text-orange-300 text-xs font-medium flex-1">
+          {urgent.length > 0 && <span className="text-red-400">{urgent.length} expiring today/overdue</span>}
+          {urgent.length > 0 && warning.length > 0 && <span className="text-orange-400"> · </span>}
+          {warning.length > 0 && <span className="text-amber-400">{warning.length} within 3 days</span>}
+          {(urgent.length > 0 || warning.length > 0) && unknown.length > 0 && <span className="text-slate-500"> · </span>}
+          {unknown.length > 0 && <span className="text-slate-500">{unknown.length} no estimate yet</span>}
+        </span>
+        <ChevronDown size={13} className={`text-slate-500 transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="px-4 pb-3 space-y-1.5 border-t border-orange-500/15 pt-2.5">
+          {alerts.map(a => (
+            <div key={a.product_id} className="flex items-center gap-2 text-xs">
+              {expiryBadge(a.days_until_expiry)}
+              <span className="text-[var(--tx-base)] truncate flex-1">{a.name}</span>
+              <span className="text-slate-500 tabular">{a.stock_qty} {a.unit}</span>
+              {a.estimated_expiry && (
+                <span className="text-slate-600 tabular hidden sm:block">{a.estimated_expiry}</span>
+              )}
+              <button
+                type="button"
+                onClick={() => onWaste(a.product_id)}
+                className="flex-shrink-0 px-2 py-0.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg text-[10px] transition-colors cursor-pointer"
+              >
+                Waste
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main screen ────────────────────────────────────────────────────────────────
 export default function InventoryScreen({ user }: Props) {
+  const { t } = useTranslation();
   const { fmt, fromDb } = useCurrency();
-  const [stocks, setStocks]         = useState<ProductStock[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [suppliers, setSuppliers]   = useState<Supplier[]>([]);
-  const [search, setSearch]         = useState("");
-  const [showLow, setShowLow]       = useState(false);
-  const [loading, setLoading]       = useState(false);
-  const [adjusting, setAdjusting]   = useState<ProductStock | null>(null);
-  const [editing, setEditing]       = useState<ProductStock | null>(null);
-  const [showAdd, setShowAdd]       = useState(false);
+  const [stocks, setStocks]           = useState<ProductStock[]>([]);
+  const [alerts, setAlerts]           = useState<PerishableAlert[]>([]);
+  const [categories, setCategories]   = useState<Category[]>([]);
+  const [suppliers, setSuppliers]     = useState<Supplier[]>([]);
+  const [search, setSearch]           = useState("");
+  const [showLow, setShowLow]         = useState(false);
+  const [loading, setLoading]         = useState(false);
+  const [adjusting, setAdjusting]     = useState<ProductStock | null>(null);
+  const [editing, setEditing]         = useState<ProductStock | null>(null);
+  const [wasting, setWasting]         = useState<ProductStock | null>(null);
+  const [showAdd, setShowAdd]         = useState(false);
   const [confirmDeact, setConfirmDeact] = useState<ProductStock | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = showLow ? await api.getLowStock() : await api.getProductStock();
+      const [data, alertData] = await Promise.all([
+        showLow ? api.getLowStock() : api.getProductStock(),
+        api.getPerishableAlerts(),
+      ]);
       setStocks(data);
+      setAlerts(alertData);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -421,6 +568,8 @@ export default function InventoryScreen({ user }: Props) {
 
   useEffect(() => { load(); }, [showLow]);
 
+  const alertMap = new Map(alerts.map(a => [a.product_id, a]));
+
   const filtered = search.trim()
     ? stocks.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -429,7 +578,7 @@ export default function InventoryScreen({ user }: Props) {
     : stocks;
 
   const handleSaved = () => {
-    setShowAdd(false); setEditing(null); setAdjusting(null);
+    setShowAdd(false); setEditing(null); setAdjusting(null); setWasting(null);
     load();
   };
 
@@ -442,6 +591,11 @@ export default function InventoryScreen({ user }: Props) {
     try { await api.deactivateProduct(confirmDeact.product_id); setConfirmDeact(null); load(); } catch (e) { console.error(e); }
   };
 
+  const openWasteById = (id: number) => {
+    const p = stocks.find(s => s.product_id === id);
+    if (p) setWasting(p);
+  };
+
   const lowCount = stocks.filter(p => p.low_stock_flag).length;
 
   return (
@@ -449,29 +603,27 @@ export default function InventoryScreen({ user }: Props) {
       {/* Header */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--bd-base)] bg-[var(--bg-base)]">
         <div>
-          <h1 className="text-[var(--tx-base)] font-semibold text-base">Inventory</h1>
-          <p className="text-slate-500 text-xs">{stocks.length} products</p>
+          <h1 className="text-[var(--tx-base)] font-semibold text-base">{t("inventory.title")}</h1>
+          <p className="text-slate-500 text-xs">{t("pos.products", { count: stocks.length })}</p>
         </div>
         <div className="flex-1" />
 
-        {/* Low stock badge */}
         {lowCount > 0 && (
           <button
             onClick={() => setShowLow(v => !v)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${showLow ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-[var(--bg-card)] border border-[var(--bd-base)] text-amber-400 hover:border-amber-500/30"}`}
           >
             <AlertTriangle size={12} />
-            {lowCount} low stock
+            {t("inventory.lowStock", { count: lowCount })}
           </button>
         )}
 
-        {/* Search */}
         <div className="relative w-56">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+          <Search size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search…"
-            className="w-full pl-8 pr-3 py-1.5 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
+            placeholder={t("inventory.searchPlaceholder")}
+            className="w-full ps-8 pe-3 py-1.5 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
           />
         </div>
 
@@ -484,17 +636,28 @@ export default function InventoryScreen({ user }: Props) {
           className="flex items-center gap-1.5 px-4 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors cursor-pointer"
         >
           <Plus size={15} />
-          Add Product
+          {t("inventory.addProduct")}
         </button>
       </div>
 
+      {/* Perishable alerts banner */}
+      <PerishableBanner alerts={alerts} onWaste={openWasteById} />
+
       {/* Table */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto mt-3">
         <table className="w-full text-sm min-w-[900px]">
           <thead className="sticky top-0 bg-[var(--bg-base)] border-b border-[var(--bd-base)] z-10">
             <tr>
-              {["Product", "Category", "Stock", "Cost", "Retail", "Status", ""].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+              {[
+                t("inventory.columns.product"),
+                t("inventory.columns.category"),
+                t("inventory.columns.stock"),
+                t("inventory.columns.cost"),
+                t("inventory.columns.retail"),
+                t("inventory.columns.status"),
+                "",
+              ].map((h, i) => (
+                <th key={i} className="px-4 py-3 text-start text-xs font-medium text-slate-500 uppercase tracking-wider">
                   {h}
                 </th>
               ))}
@@ -515,64 +678,81 @@ export default function InventoryScreen({ user }: Props) {
               <tr>
                 <td colSpan={7} className="text-center py-16 text-slate-600">
                   <Package size={36} strokeWidth={1} className="mx-auto mb-2" />
-                  <p>{search ? "No results" : "No products yet"}</p>
+                  <p>{search ? t("inventory.noResults") : t("inventory.noProducts")}</p>
                 </td>
               </tr>
-            ) : filtered.map(p => (
-              <tr key={p.product_id} className="border-b border-[var(--bd-base)]/40 hover:bg-[var(--bg-card)]/40 transition-colors group">
-                <td className="px-4 py-3">
-                  <div className="text-[var(--tx-base)] font-medium leading-tight">{p.name}</div>
-                  <div className="text-slate-600 text-xs mt-0.5 tabular">
-                    {p.barcode ?? p.internal_code ?? "—"}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-slate-400 text-xs">
-                  {p.category_name ?? "—"}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`font-semibold tabular ${stockColor(p.stock_qty, p.min_stock)}`}>
-                    {p.stock_qty}
-                  </span>
-                  <span className="text-slate-600 text-xs ml-1">{p.unit}</span>
-                  {p.low_stock_flag && (
-                    <TrendingDown size={12} className="inline ml-1.5 text-amber-400" />
-                  )}
-                </td>
-                <td className="px-4 py-3 text-slate-400 tabular text-xs">{fmt(p.cost_price)}</td>
-                <td className="px-4 py-3 text-[#14B8A6] font-medium tabular">{fmt(p.sell_price_retail)}</td>
-                <td className="px-4 py-3">
-                  {p.is_frozen ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs rounded-full">
-                      <Snowflake size={10} /> Frozen
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-full">
-                      Active
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => setAdjusting(p)} title="Adjust stock"
-                      className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
-                      <Plus size={13} />
-                    </button>
-                    <button onClick={() => setEditing(p)} title="Edit product"
-                      className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
-                      <Pencil size={13} />
-                    </button>
-                    <button onClick={() => toggleFreeze(p)} title={p.is_frozen ? "Unfreeze" : "Freeze"}
-                      className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 flex items-center justify-center transition-colors cursor-pointer">
-                      <Snowflake size={13} />
-                    </button>
-                    <button onClick={() => setConfirmDeact(p)} title="Deactivate"
-                      className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer">
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            ) : filtered.map(p => {
+              const alert = alertMap.get(p.product_id);
+              return (
+                <tr key={p.product_id} className="border-b border-[var(--bd-base)]/40 hover:bg-[var(--bg-card)]/40 transition-colors group">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <div className="text-[var(--tx-base)] font-medium leading-tight">{p.name}</div>
+                        <div className="text-slate-600 text-xs mt-0.5 tabular">
+                          {p.barcode ?? p.internal_code ?? "—"}
+                        </div>
+                      </div>
+                      {p.is_perishable && (
+                        <span title="Perishable"><Flame size={11} className="text-orange-400 flex-shrink-0" /></span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-slate-400 text-xs">
+                    {p.category_name ?? "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`font-semibold tabular ${stockColor(p.stock_qty, p.min_stock)}`}>
+                        {p.stock_qty}
+                      </span>
+                      <span className="text-slate-600 text-xs">{p.unit}</span>
+                      {p.low_stock_flag && <TrendingDown size={12} className="text-amber-400" />}
+                      {alert && expiryBadge(alert.days_until_expiry)}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-slate-400 tabular text-xs">{fmt(p.cost_price)}</td>
+                  <td className="px-4 py-3 text-[#14B8A6] font-medium tabular">{fmt(p.sell_price_retail)}</td>
+                  <td className="px-4 py-3">
+                    {p.is_frozen ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs rounded-full">
+                        <Snowflake size={10} /> Frozen
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-full">
+                        Active
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {p.is_perishable && (
+                        <button onClick={() => setWasting(p)} title="Log waste"
+                          className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer">
+                          <Flame size={13} />
+                        </button>
+                      )}
+                      <button onClick={() => setAdjusting(p)} title="Adjust stock"
+                        className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
+                        <Plus size={13} />
+                      </button>
+                      <button onClick={() => setEditing(p)} title="Edit product"
+                        className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
+                        <Pencil size={13} />
+                      </button>
+                      <button onClick={() => toggleFreeze(p)} title={p.is_frozen ? "Unfreeze" : "Freeze"}
+                        className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 flex items-center justify-center transition-colors cursor-pointer">
+                        <Snowflake size={13} />
+                      </button>
+                      <button onClick={() => setConfirmDeact(p)} title="Deactivate"
+                        className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -595,6 +775,12 @@ export default function InventoryScreen({ user }: Props) {
         <AdjustModal
           product={adjusting} userId={user.id}
           onClose={() => setAdjusting(null)} onSaved={handleSaved}
+        />
+      )}
+      {wasting && (
+        <WasteModal
+          product={wasting} userId={user.id}
+          onClose={() => setWasting(null)} onSaved={handleSaved}
         />
       )}
       {confirmDeact && (

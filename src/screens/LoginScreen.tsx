@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Store, ShieldCheck } from "lucide-react";
 import { api } from "../lib/api";
 import { User } from "../types";
@@ -15,6 +16,7 @@ const roleStyle: Record<string, string> = {
 };
 
 export default function LoginScreen({ onLogin }: Props) {
+  const { t } = useTranslation();
   const [users, setUsers]               = useState<User[]>([]);
   const [selected, setSelected]         = useState<User | null>(null);
   const [pin, setPin]                   = useState("");
@@ -48,7 +50,7 @@ export default function LoginScreen({ onLogin }: Props) {
       const result = await api.login(selected.username, pin);
       onLogin(result.user);
     } catch {
-      setError("Incorrect PIN — try again");
+      setError(t("login.pinError"));
       setShake(true);
       setPin("");
       setTimeout(() => setShake(false), 600);
@@ -82,14 +84,14 @@ export default function LoginScreen({ onLogin }: Props) {
               MiniMarket <span className="text-[#14B8A6]">POS</span>
             </h1>
           </div>
-          <p className="text-slate-500 text-sm">Select your profile and enter your PIN to continue</p>
+          <p className="text-slate-500 text-sm">{t("login.subtitle")}</p>
         </div>
 
         <div className="grid grid-cols-[1fr_300px] gap-4">
           {/* Cashier list */}
           <div className="bg-[var(--bg-base)]/80 backdrop-blur border border-[var(--bd-base)] rounded-2xl p-5">
             <p className="text-slate-500 text-xs font-semibold uppercase tracking-widest mb-4">
-              Who's clocking in?
+              {t("login.whosClockingIn")}
             </p>
 
             {loadingUsers ? (
@@ -98,7 +100,7 @@ export default function LoginScreen({ onLogin }: Props) {
               </div>
             ) : users.length === 0 ? (
               <div className="text-center py-12 text-slate-600 text-sm">
-                No users found. Create one in settings.
+                {t("login.noUsers")}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
@@ -149,7 +151,7 @@ export default function LoginScreen({ onLogin }: Props) {
               ) : (
                 <div className="flex flex-col items-center gap-2 text-slate-600">
                   <ShieldCheck size={28} strokeWidth={1.5} />
-                  <span className="text-xs">Select a cashier</span>
+                  <span className="text-xs">{t("login.selectCashier")}</span>
                 </div>
               )}
             </div>
@@ -185,7 +187,7 @@ export default function LoginScreen({ onLogin }: Props) {
         </div>
 
         <p className="text-center text-slate-700 text-xs">
-          © {new Date().getFullYear()} MiniMarket POS — All rights reserved
+          {t("login.copyright", { year: new Date().getFullYear() })}
         </p>
       </div>
     </div>

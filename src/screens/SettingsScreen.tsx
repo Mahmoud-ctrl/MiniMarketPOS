@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronRight, DollarSign, Pencil, Plus, Store, Tag, Trash2, Truck, Upload, User as UserIcon, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Check, ChevronRight, DollarSign, Globe, Pencil, Plus, Store, Tag, Trash2, Truck, Upload, User as UserIcon, Users } from "lucide-react";
 import { api } from "../lib/api";
 import { Category, Supplier, User } from "../types";
 import { groupCategories } from "../lib/categories";
 import { useCurrency } from "../context/CurrencyContext";
+import { useLanguage } from "../context/LanguageContext";
 import Modal from "../components/Modal";
 
 interface Props { user: User }
 
-type Tab = "store" | "users" | "categories" | "suppliers" | "currency";
+type Tab = "store" | "users" | "categories" | "suppliers" | "currency" | "language";
 
 const iCls   = "w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors";
 const selCls = iCls + " cursor-pointer";
@@ -32,6 +34,7 @@ const roleStyle: Record<string, string> = {
 
 // ── Users tab ──────────────────────────────────────────────────────────────────
 function UsersTab({ currentUser }: { currentUser: User }) {
+  const { t } = useTranslation();
   const [users, setUsers]         = useState<User[]>([]);
   const [showAdd, setShowAdd]     = useState(false);
   const [pinTarget, setPinTarget] = useState<User | null>(null);
@@ -42,11 +45,11 @@ function UsersTab({ currentUser }: { currentUser: User }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-slate-400 text-sm">{users.length} users</p>
+        <p className="text-slate-400 text-sm">{t("settings.userForm.userCount", { n: users.length })}</p>
         {currentUser.role === "admin" && (
           <button onClick={() => setShowAdd(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-xs rounded-xl transition-colors cursor-pointer">
-            <Plus size={13} /> Add User
+            <Plus size={13} /> {t("settings.userForm.addUser")}
           </button>
         )}
       </div>
@@ -67,7 +70,7 @@ function UsersTab({ currentUser }: { currentUser: User }) {
             {(currentUser.role === "admin" || currentUser.id === u.id) && (
               <button onClick={() => setPinTarget(u)}
                 className="px-2.5 py-1 text-xs text-slate-400 hover:text-[var(--tx-base)] bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] rounded-lg transition-colors cursor-pointer">
-                Change PIN
+                {t("settings.userForm.updatePin")}
               </button>
             )}
           </div>
@@ -85,6 +88,7 @@ function UsersTab({ currentUser }: { currentUser: User }) {
 }
 
 function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation();
   const [username, setUsername]   = useState("");
   const [fullName, setFullName]   = useState("");
   const [role, setRole]           = useState("cashier");
@@ -108,36 +112,36 @@ function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   };
 
   return (
-    <Modal title="Add User" onClose={onClose}>
+    <Modal title={t("settings.userForm.addUser")} onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-3">
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
             {error}
           </div>
         )}
-        <Field label="Full Name" required>
+        <Field label={t("settings.userForm.fullName")} required>
           <input className={iCls} value={fullName} onChange={e => setFullName(e.target.value)} placeholder="John Smith" />
         </Field>
-        <Field label="Username" required>
+        <Field label={t("settings.userForm.username")} required>
           <input className={iCls} value={username} onChange={e => setUsername(e.target.value)} placeholder="jsmith" />
         </Field>
-        <Field label="Role">
+        <Field label={t("settings.userForm.role")}>
           <select className={selCls} value={role} onChange={e => setRole(e.target.value)}>
-            <option value="cashier">Cashier</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
+            <option value="cashier">{t("settings.userForm.roles.cashier")}</option>
+            <option value="manager">{t("settings.userForm.roles.manager")}</option>
+            <option value="admin">{t("settings.userForm.roles.admin")}</option>
           </select>
         </Field>
-        <Field label="PIN (4–6 digits)" required>
+        <Field label={t("settings.userForm.pin")} required>
           <input className={iCls} type="password" inputMode="numeric" maxLength={6} value={pin} onChange={e => setPin(e.target.value)} placeholder="••••" />
         </Field>
-        <Field label="Confirm PIN" required>
+        <Field label={t("settings.userForm.confirmPin")} required>
           <input className={iCls} type="password" inputMode="numeric" maxLength={6} value={confirmPin} onChange={e => setConfirm(e.target.value)} placeholder="••••" />
         </Field>
         <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">{t("common.cancel")}</button>
           <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
-            {saving ? "Creating…" : "Create User"}
+            {saving ? t("settings.userForm.creating") : t("settings.userForm.createUser")}
           </button>
         </div>
       </form>
@@ -146,6 +150,7 @@ function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
 }
 
 function ChangePinModal({ user, onClose, onSaved }: { user: User; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation();
   const [pin, setPin]       = useState("");
   const [confirm, setConf]  = useState("");
   const [saving, setSaving] = useState(false);
@@ -167,26 +172,26 @@ function ChangePinModal({ user, onClose, onSaved }: { user: User; onClose: () =>
   };
 
   return (
-    <Modal title={`Change PIN — ${user.full_name}`} onClose={onClose}>
+    <Modal title={`${t("settings.userForm.updatePin")} — ${user.full_name}`} onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-3">
         {done ? (
           <div className="flex flex-col items-center gap-2 py-4 text-emerald-400">
             <Check size={32} />
-            <p className="font-medium">PIN updated</p>
+            <p className="font-medium">{t("settings.userForm.pinUpdated")}</p>
           </div>
         ) : (
           <>
-            <Field label="New PIN (4–6 digits)" required>
+            <Field label={t("settings.userForm.pin")} required>
               <input className={iCls} type="password" inputMode="numeric" maxLength={6} value={pin} onChange={e => setPin(e.target.value)} placeholder="••••" />
             </Field>
-            <Field label="Confirm PIN" required>
+            <Field label={t("settings.userForm.confirmPin")} required>
               <input className={iCls} type="password" inputMode="numeric" maxLength={6} value={confirm} onChange={e => setConf(e.target.value)} placeholder="••••" />
             </Field>
             {error && <p className="text-red-400 text-sm">{error}</p>}
             <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
-              <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">{t("common.cancel")}</button>
               <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
-                {saving ? "Saving…" : "Update PIN"}
+                {saving ? t("settings.userForm.saving") : t("settings.userForm.updatePin")}
               </button>
             </div>
           </>
@@ -198,9 +203,9 @@ function ChangePinModal({ user, onClose, onSaved }: { user: User; onClose: () =>
 
 // ── Categories tab ─────────────────────────────────────────────────────────────
 function CategoriesTab() {
+  const { t } = useTranslation();
   const [cats, setCats]       = useState<Category[]>([]);
   const [editing, setEditing] = useState<Category | null>(null);
-  // addingUnder: null = adding a root category, number = adding sub under that parent id
   const [addingUnder, setAddingUnder] = useState<number | null | "closed">("closed");
   const [deleting, setDeleting]       = useState<Category | null>(null);
 
@@ -215,12 +220,12 @@ function CategoriesTab() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-slate-400 text-sm">{cats.length} categories</p>
+        <p className="text-slate-400 text-sm">{t("settings.categoryForm.categoryCount", { n: cats.length })}</p>
         <button
           onClick={() => setAddingUnder(null)}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
         >
-          <Plus size={13} /> Add Category
+          <Plus size={13} /> {t("settings.categoryForm.add")}
         </button>
       </div>
 
@@ -248,7 +253,7 @@ function CategoriesTab() {
                   onClick={() => setAddingUnder(parent.id)}
                   className="px-2 py-1 text-[11px] text-[#14B8A6] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 border border-[#14B8A6]/20 rounded-lg transition-colors cursor-pointer"
                 >
-                  + Sub
+                  + {t("settings.categoryForm.sub")}
                 </button>
                 <button onClick={() => setEditing(parent)} className={`${btnRow} bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)]`}><Pencil size={12} /></button>
                 <button onClick={() => setDeleting(parent)} className={`${btnRow} bg-[var(--bg-raised)] hover:bg-red-500/20 text-slate-400 hover:text-red-400`}><Trash2 size={12} /></button>
@@ -271,7 +276,7 @@ function CategoriesTab() {
             ))}
           </div>
         ))}
-        {cats.length === 0 && <p className="text-center py-8 text-slate-600 text-sm">No categories yet</p>}
+        {cats.length === 0 && <p className="text-center py-8 text-slate-600 text-sm">{t("settings.categoryForm.noCategories")}</p>}
       </div>
 
       {addingUnder !== "closed" && (
@@ -293,24 +298,20 @@ function CategoriesTab() {
         />
       )}
       {deleting && (
-        <Modal title="Delete Category" onClose={() => setDeleting(null)}>
+        <Modal title={t("settings.categoryForm.delete")} onClose={() => setDeleting(null)}>
           <div className="p-6 space-y-4">
-            {deleting.parent_id === null && cats.some(c => c.parent_id === deleting.id) ? (
-              <p className="text-slate-300 text-sm">
-                Delete <strong className="text-[var(--tx-base)]">{deleting.name}</strong>? Its sub-categories will become top-level categories. Products will become uncategorized.
-              </p>
-            ) : (
-              <p className="text-slate-300 text-sm">
-                Delete <strong className="text-[var(--tx-base)]">{deleting.name}</strong>? Products in this category will become uncategorized.
-              </p>
-            )}
+            <p className="text-slate-300 text-sm">
+              {deleting.parent_id === null && cats.some(c => c.parent_id === deleting.id)
+                ? t("settings.categoryForm.deleteWithSubs", { name: deleting.name })
+                : t("settings.categoryForm.deleteConfirm",  { name: deleting.name })}
+            </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleting(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
+              <button onClick={() => setDeleting(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">{t("common.cancel")}</button>
               <button
                 onClick={async () => { await api.deleteCategory(deleting.id); setDeleting(null); load(); }}
                 className="px-4 py-2 bg-red-500/15 hover:bg-red-500/25 text-red-400 font-medium text-sm rounded-xl border border-red-500/20 transition-colors cursor-pointer"
               >
-                Delete
+                {t("common.delete")}
               </button>
             </div>
           </div>
@@ -329,6 +330,7 @@ function CategoryModal({
   onClose:             () => void;
   onSaved:             () => void;
 }) {
+  const { t } = useTranslation();
   const [name, setName]     = useState(cat?.name ?? "");
   const [desc, setDesc]     = useState(cat?.description ?? "");
   const [parentId, setParentId] = useState<string>(
@@ -358,28 +360,32 @@ function CategoryModal({
   // Only root categories are valid parents (no 3rd level)
   const parentOptions = rootCats.filter(c => c.id !== cat?.id);
 
+  const modalTitle = cat
+    ? t("settings.categoryForm.edit")
+    : parentId ? t("settings.categoryForm.addSub") : t("settings.categoryForm.add");
+
   return (
-    <Modal title={cat ? "Edit Category" : parentId ? "Add Sub-Category" : "Add Category"} onClose={onClose}>
+    <Modal title={modalTitle} onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-3">
-        <Field label="Name" required>
+        <Field label={t("settings.categoryForm.name")} required>
           <input className={iCls} value={name} onChange={e => setName(e.target.value)} placeholder={parentId ? "e.g. Soft Drinks" : "e.g. Beverages"} autoFocus />
         </Field>
-        <Field label="Parent Category">
+        <Field label={t("settings.categoryForm.parentCategory")}>
           <select className={selCls} value={parentId} onChange={e => setParentId(e.target.value)}>
-            <option value="">— None (top-level) —</option>
+            <option value="">{t("settings.categoryForm.noneTopLevel")}</option>
             {parentOptions.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         </Field>
-        <Field label="Description (optional)">
-          <input className={iCls} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Short description" />
+        <Field label={t("settings.categoryForm.description")}>
+          <input className={iCls} value={desc} onChange={e => setDesc(e.target.value)} placeholder={t("common.optional")} />
         </Field>
         {error && <p className="text-red-400 text-sm">{error}</p>}
         <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">{t("common.cancel")}</button>
           <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
-            {saving ? "Saving…" : cat ? "Save" : "Add Category"}
+            {saving ? t("common.saving") : cat ? t("common.save") : t("settings.categoryForm.add")}
           </button>
         </div>
       </form>
@@ -389,6 +395,7 @@ function CategoryModal({
 
 // ── Suppliers tab ──────────────────────────────────────────────────────────────
 function SuppliersTab() {
+  const { t } = useTranslation();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [editing, setEditing]     = useState<Supplier | null>(null);
   const [showAdd, setShowAdd]     = useState(false);
@@ -399,10 +406,10 @@ function SuppliersTab() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-slate-400 text-sm">{suppliers.length} suppliers</p>
+        <p className="text-slate-400 text-sm">{t("settings.supplierForm.supplierCount", { n: suppliers.length })}</p>
         <button onClick={() => setShowAdd(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-xs rounded-xl transition-colors cursor-pointer">
-          <Plus size={13} /> Add Supplier
+          <Plus size={13} /> {t("settings.supplierForm.add")}
         </button>
       </div>
 
@@ -423,7 +430,7 @@ function SuppliersTab() {
             <button onClick={() => setEditing(s)} className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer opacity-0 group-hover:opacity-100"><Pencil size={12} /></button>
           </div>
         ))}
-        {suppliers.length === 0 && <p className="text-center py-8 text-slate-600 text-sm">No suppliers yet</p>}
+        {suppliers.length === 0 && <p className="text-center py-8 text-slate-600 text-sm">{t("settings.supplierForm.noSuppliers")}</p>}
       </div>
 
       {(showAdd || editing) && (
@@ -438,6 +445,7 @@ function SuppliersTab() {
 }
 
 function SupplierModal({ supplier, onClose, onSaved }: { supplier: Supplier | null; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation();
   const [name, setName]     = useState(supplier?.name    ?? "");
   const [phone, setPhone]   = useState(supplier?.phone   ?? "");
   const [email, setEmail]   = useState(supplier?.email   ?? "");
@@ -464,27 +472,27 @@ function SupplierModal({ supplier, onClose, onSaved }: { supplier: Supplier | nu
   };
 
   return (
-    <Modal title={supplier ? "Edit Supplier" : "Add Supplier"} onClose={onClose}>
+    <Modal title={supplier ? t("settings.supplierForm.edit") : t("settings.supplierForm.add")} onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-3">
-        <Field label="Name" required>
-          <input className={iCls} value={name} onChange={e => setName(e.target.value)} placeholder="Supplier name" autoFocus />
+        <Field label={t("settings.supplierForm.name")} required>
+          <input className={iCls} value={name} onChange={e => setName(e.target.value)} placeholder={t("settings.supplierForm.name")} autoFocus />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Phone">
+          <Field label={t("settings.supplierForm.phone")}>
             <input className={iCls} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 555 000 0000" />
           </Field>
-          <Field label="Email">
+          <Field label={t("settings.supplierForm.email")}>
             <input className={iCls} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="orders@supplier.com" />
           </Field>
         </div>
-        <Field label="Address">
+        <Field label={t("settings.supplierForm.address")}>
           <input className={iCls} value={addr} onChange={e => setAddr(e.target.value)} placeholder="Street, City" />
         </Field>
         {error && <p className="text-red-400 text-sm">{error}</p>}
         <div className="flex justify-end gap-2 pt-2 border-t border-[var(--bd-base)]">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">Cancel</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-[var(--tx-base)] rounded-xl hover:bg-[var(--bg-raised)] transition-colors cursor-pointer">{t("common.cancel")}</button>
           <button type="submit" disabled={saving} className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
-            {saving ? "Saving…" : supplier ? "Save" : "Add Supplier"}
+            {saving ? t("common.saving") : supplier ? t("common.save") : t("settings.supplierForm.add")}
           </button>
         </div>
       </form>
@@ -494,6 +502,7 @@ function SupplierModal({ supplier, onClose, onSaved }: { supplier: Supplier | nu
 
 // ── Store config tab ───────────────────────────────────────────────────────────
 function StoreConfigTab() {
+  const { t } = useTranslation();
   const [name,    setName]    = useState("");
   const [address, setAddress] = useState("");
   const [phone,   setPhone]   = useState("");
@@ -548,7 +557,7 @@ function StoreConfigTab() {
 
       {/* Logo */}
       <div>
-        <label className="block text-xs text-slate-400 mb-2">Store Logo</label>
+        <label className="block text-xs text-slate-400 mb-2">{t("settings.store.logo")}</label>
         <div className="flex items-start gap-4">
           {/* Preview */}
           <div className="w-20 h-20 flex-shrink-0 rounded-xl bg-[var(--bg-card)] border border-[var(--bd-base)] flex items-center justify-center overflow-hidden">
@@ -562,7 +571,7 @@ function StoreConfigTab() {
           {/* Controls */}
           <div className="space-y-2 pt-1">
             <label className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--bd-base)] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] text-xs rounded-xl transition-colors cursor-pointer">
-              <Upload size={12} /> Upload image
+              <Upload size={12} /> {t("settings.store.uploadImage")}
               <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleLogoChange} />
             </label>
             {logo && (
@@ -570,24 +579,23 @@ function StoreConfigTab() {
                 onClick={() => { setLogo(""); setLogoWarn(false); }}
                 className="block text-xs text-slate-600 hover:text-red-400 transition-colors cursor-pointer"
               >
-                Remove logo
+                {t("settings.store.removeLogo")}
               </button>
             )}
-            <p className="text-slate-600 text-[11px]">PNG / JPG — used on receipts</p>
+            <p className="text-slate-600 text-[11px]">{t("settings.store.receiptHint")}</p>
             {logoWarn && (
-              <p className="text-amber-400 text-[11px]">Image is large — consider resizing for faster receipts.</p>
+              <p className="text-amber-400 text-[11px]">{t("settings.store.imageWarn")}</p>
             )}
           </div>
         </div>
       </div>
 
       {/* Store name */}
-      <Field label="Store Name" required>
+      <Field label={t("settings.store.storeName")} required>
         <input className={iCls} value={name} onChange={e => setName(e.target.value)} placeholder="My Mini Market" />
       </Field>
 
-      {/* Address */}
-      <Field label="Address">
+      <Field label={t("settings.store.address")}>
         <textarea
           rows={3}
           className={taCls}
@@ -597,29 +605,26 @@ function StoreConfigTab() {
         />
       </Field>
 
-      {/* Phone + Email */}
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Phone">
+        <Field label={t("settings.store.phone")}>
           <input className={iCls} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+961 1 234 567" />
         </Field>
-        <Field label="Email">
+        <Field label={t("settings.store.email")}>
           <input className={iCls} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="store@example.com" />
         </Field>
       </div>
 
-      {/* Tagline */}
-      <Field label="Tagline / Slogan">
+      <Field label={t("settings.store.tagline")}>
         <input className={iCls} value={tagline} onChange={e => setTagline(e.target.value)} placeholder="Thank you for shopping with us!" />
       </Field>
 
-      {/* Save */}
       <div className="pt-2 border-t border-[var(--bd-base)]">
         <button
           onClick={handleSave}
           disabled={saving}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
         >
-          {saved ? <><Check size={14} /> Saved</> : saving ? "Saving…" : "Save Store Info"}
+          {saved ? <><Check size={14} /> {t("settings.store.saved")}</> : saving ? t("common.saving") : t("settings.store.save")}
         </button>
       </div>
     </div>
@@ -628,6 +633,7 @@ function StoreConfigTab() {
 
 // ── Currency tab ───────────────────────────────────────────────────────────────
 function CurrencyTab() {
+  const { t } = useTranslation();
   const { baseCurrency, exchangeRate, showAlt, setSetting } = useCurrency();
 
   const [rate,    setRate]    = useState(String(exchangeRate));
@@ -658,10 +664,8 @@ function CurrencyTab() {
   return (
     <div className="max-w-md space-y-6">
       <div>
-        <p className="text-[var(--tx-base)] font-semibold text-sm mb-1">Base Currency</p>
-        <p className="text-slate-500 text-xs mb-3">
-          Prices in the database are stored in this currency. Change only before entering prices — existing prices will NOT be converted.
-        </p>
+        <p className="text-[var(--tx-base)] font-semibold text-sm mb-1">{t("settings.currency.baseCurrency")}</p>
+        <p className="text-slate-500 text-xs mb-3">{t("settings.currency.baseCurrencyHint")}</p>
         <div className="flex gap-3">
           {(["USD", "LBP"] as const).map(c => (
             <button
@@ -679,14 +683,14 @@ function CurrencyTab() {
         </div>
         {localBase !== baseCurrency && (
           <p className="mt-2 text-amber-400 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-            Warning: switching base currency will reinterpret all stored prices in the new currency unit without converting their values.
+            {t("settings.currency.baseCurrencyWarn")}
           </p>
         )}
       </div>
 
       <div>
-        <p className="text-[var(--tx-base)] font-semibold text-sm mb-1">Exchange Rate</p>
-        <p className="text-slate-500 text-xs mb-3">How many Lebanese Pounds equal 1 US Dollar.</p>
+        <p className="text-[var(--tx-base)] font-semibold text-sm mb-1">{t("settings.currency.exchangeRate")}</p>
+        <p className="text-slate-500 text-xs mb-3">{t("settings.currency.exchangeRateHint")}</p>
         <div className="flex items-center gap-3">
           <span className="text-slate-400 text-sm whitespace-nowrap">1 USD =</span>
           <input
@@ -706,8 +710,8 @@ function CurrencyTab() {
       </div>
 
       <div>
-        <p className="text-[var(--tx-base)] font-semibold text-sm mb-1">Show Secondary Currency</p>
-        <p className="text-slate-500 text-xs mb-3">Display the equivalent amount in the other currency alongside prices.</p>
+        <p className="text-[var(--tx-base)] font-semibold text-sm mb-1">{t("settings.currency.showAlt")}</p>
+        <p className="text-slate-500 text-xs mb-3">{t("settings.currency.showAltHint")}</p>
         <button
           onClick={() => setLocalAlt(v => !v)}
           className="flex items-center gap-2 cursor-pointer group"
@@ -716,7 +720,7 @@ function CurrencyTab() {
             <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${localAlt ? "left-4" : "left-0.5"}`} />
           </div>
           <span className="text-sm text-slate-400 group-hover:text-slate-300">
-            {localAlt ? "Enabled" : "Disabled"}
+            {localAlt ? t("settings.currency.enabled") : t("settings.currency.disabled")}
           </span>
         </button>
       </div>
@@ -727,31 +731,75 @@ function CurrencyTab() {
           disabled={saving || parseInt(rate || "0") <= 0}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
         >
-          {saved ? <><Check size={14} /> Saved</> : saving ? "Saving…" : "Save Currency Settings"}
+          {saved ? <><Check size={14} /> {t("settings.store.saved")}</> : saving ? t("common.saving") : t("settings.currency.save")}
         </button>
       </div>
     </div>
   );
 }
 
+// ── Language tab ───────────────────────────────────────────────────────────────
+function LanguageTab() {
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguage();
+
+  const options: { lang: "en" | "ar"; label: string; native: string; dir: string }[] = [
+    { lang: "en", label: t("settings.language.english"), native: "English",  dir: "ltr" },
+    { lang: "ar", label: t("settings.language.arabic"),  native: "العربية", dir: "rtl" },
+  ];
+
+  return (
+    <div className="max-w-md space-y-6">
+      <div>
+        <p className="text-[var(--tx-base)] font-semibold text-sm mb-1">{t("settings.language.title")}</p>
+        <p className="text-slate-500 text-xs mb-5">{t("settings.language.subtitle")}</p>
+
+        <div className="flex gap-3">
+          {options.map(({ lang, label, native, dir }) => (
+            <button
+              key={lang}
+              onClick={() => setLanguage(lang)}
+              className={`flex-1 flex flex-col items-center gap-1.5 py-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                language === lang
+                  ? "bg-[#14B8A6]/10 border-[#14B8A6] text-[#14B8A6]"
+                  : "bg-[var(--bg-card)] border-[var(--bd-base)] text-slate-400 hover:border-[#14B8A6]/40 hover:text-slate-200"
+              }`}
+            >
+              <span className="text-2xl font-bold" dir={dir}>{native}</span>
+              <span className="text-xs font-medium">{label}</span>
+              {language === lang && (
+                <span className="text-[10px] bg-[#14B8A6]/20 text-[#14B8A6] px-2 py-0.5 rounded-full font-medium">
+                  {t("settings.language.currentLabel")}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
-const TABS: { id: Tab; label: string; icon: typeof UserIcon }[] = [
-  { id: "store",      label: "Store",      icon: Store        },
-  { id: "users",      label: "Users",      icon: Users        },
-  { id: "categories", label: "Categories", icon: Tag          },
-  { id: "suppliers",  label: "Suppliers",  icon: Truck        },
-  { id: "currency",   label: "Currency",   icon: DollarSign   },
+const TABS: { id: Tab; labelKey: string; icon: typeof UserIcon }[] = [
+  { id: "store",      labelKey: "settings.tabs.store",      icon: Store        },
+  { id: "users",      labelKey: "settings.tabs.users",      icon: Users        },
+  { id: "categories", labelKey: "settings.tabs.categories", icon: Tag          },
+  { id: "suppliers",  labelKey: "settings.tabs.suppliers",  icon: Truck        },
+  { id: "currency",   labelKey: "settings.tabs.currency",   icon: DollarSign   },
+  { id: "language",   labelKey: "settings.tabs.language",   icon: Globe        },
 ];
 
 export default function SettingsScreen({ user }: Props) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("store");
 
   return (
     <div className="flex-1 flex overflow-hidden">
-      {/* Left sidebar */}
-      <div className="w-48 flex-shrink-0 border-r border-[var(--bd-base)] bg-[var(--bg-base)] py-4 px-2">
-        <p className="text-xs text-slate-600 font-medium uppercase tracking-wider px-3 mb-3">Settings</p>
-        {TABS.map(({ id, label, icon: Icon }) => (
+      {/* Sidebar */}
+      <div className="w-48 flex-shrink-0 border-e border-[var(--bd-base)] bg-[var(--bg-base)] py-4 px-2">
+        <p className="text-xs text-slate-600 font-medium uppercase tracking-wider px-3 mb-3">{t("nav.settings")}</p>
+        {TABS.map(({ id, labelKey, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -762,7 +810,7 @@ export default function SettingsScreen({ user }: Props) {
             }`}
           >
             <Icon size={15} />
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>
@@ -774,6 +822,7 @@ export default function SettingsScreen({ user }: Props) {
         {tab === "categories" && <CategoriesTab />}
         {tab === "suppliers"  && <SuppliersTab />}
         {tab === "currency"   && <CurrencyTab />}
+        {tab === "language"   && <LanguageTab />}
       </div>
     </div>
   );

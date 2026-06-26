@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   BarChart3, BoxesIcon, Home, LogOut, Moon, Sun,
   Package, QrCode, ScrollText, Search, Settings, Truck, Users, Zap,
@@ -8,6 +9,7 @@ import { Category, PriceTier, Product, User } from "../types";
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import CartPanel from "../components/CartPanel";
 import InventoryScreen from "./InventoryScreen";
 import PurchasesScreen from "./PurchasesScreen";
@@ -34,19 +36,21 @@ const CAT_COLORS = [
 const catColor = (id: number | null) =>
   id == null ? "#475569" : CAT_COLORS[id % CAT_COLORS.length];
 
-const NAV: { id: Screen; icon: typeof Home; label: string }[] = [
-  { id: "pos",          icon: Home,       label: "POS"          },
-  { id: "inventory",    icon: Package,    label: "Inventory"    },
-  { id: "purchases",    icon: Truck,      label: "Purchases"    },
-  { id: "transactions", icon: ScrollText, label: "Transactions" },
-  { id: "reports",      icon: BarChart3,  label: "Reports"      },
-  { id: "customers",    icon: Users,      label: "Customers"    },
-  { id: "settings",     icon: Settings,   label: "Settings"     },
+const NAV: { id: Screen; icon: typeof Home; labelKey: string }[] = [
+  { id: "pos",          icon: Home,       labelKey: "nav.pos"          },
+  { id: "inventory",    icon: Package,    labelKey: "nav.inventory"    },
+  { id: "purchases",    icon: Truck,      labelKey: "nav.purchases"    },
+  { id: "transactions", icon: ScrollText, labelKey: "nav.transactions" },
+  { id: "reports",      icon: BarChart3,  labelKey: "nav.reports"      },
+  { id: "customers",    icon: Users,      labelKey: "nav.customers"    },
+  { id: "settings",     icon: Settings,   labelKey: "nav.settings"     },
 ];
 
 export default function POSScreen({ user, onLogout }: Props) {
+  const { t } = useTranslation();
   const { fmt, fmtAlt, showAlt } = useCurrency();
   const { theme, toggleTheme } = useTheme();
+  const { language, toggleLanguage } = useLanguage();
   const { addToCart, priceTier, setPriceTier, items: cartItems } = useCart();
 
   const [screen, setScreen]           = useState<Screen>("pos");
@@ -113,7 +117,7 @@ export default function POSScreen({ user, onLogout }: Props) {
   };
 
   const handleSaleComplete = () => {
-    showToast("✓ Sale completed");
+    showToast(t("pos.saleCompleted"));
     searchRef.current?.focus();
   };
 
@@ -123,9 +127,9 @@ export default function POSScreen({ user, onLogout }: Props) {
     try {
       const p = await api.getProductByBarcode(search.trim());
       if (p) { addToCart(p); setSearch(""); }
-      else   showToast("Product not found");
+      else   showToast(t("pos.productNotFound"));
     } catch {
-      showToast("Barcode lookup failed");
+      showToast(t("pos.barcodeFail"));
     }
   };
 
@@ -133,13 +137,13 @@ export default function POSScreen({ user, onLogout }: Props) {
     <div className="h-screen flex bg-[var(--bg-deep)] overflow-hidden">
 
       {/* ── Sidebar ────────────────────────────────────────────── */}
-      <div className="w-20 flex-shrink-0 flex flex-col items-center py-5 gap-1 border-r border-[var(--bd-faint)] bg-[var(--bg-panel)]">
+      <div className="w-20 flex-shrink-0 flex flex-col items-center py-5 gap-1 border-e border-[var(--bd-faint)] bg-[var(--bg-panel)]">
         {/* Logo */}
         <div className="w-10 h-10 rounded-2xl bg-[#14B8A6] flex items-center justify-center mb-5 shadow-lg shadow-[#14B8A6]/30">
           <Zap size={18} className="text-[#020817]" fill="currentColor" />
         </div>
 
-        {NAV.map(({ id, icon: Icon, label }) => (
+        {NAV.map(({ id, icon: Icon, labelKey }) => (
           <button
             key={id}
             onClick={() => setScreen(id)}
@@ -150,7 +154,7 @@ export default function POSScreen({ user, onLogout }: Props) {
             }`}
           >
             <Icon size={19} />
-            <span className="text-[10px] font-semibold tracking-wide leading-none">{label}</span>
+            <span className="text-[10px] font-semibold tracking-wide leading-none">{t(labelKey)}</span>
           </button>
         ))}
 
@@ -164,7 +168,21 @@ export default function POSScreen({ user, onLogout }: Props) {
         >
           {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
           <span className="text-[10px] font-semibold tracking-wide leading-none">
-            {theme === "dark" ? "Light" : "Dark"}
+            {theme === "dark" ? t("nav.light") : t("nav.dark")}
+          </span>
+        </button>
+
+        {/* Language toggle */}
+        <button
+          title={language === "en" ? "Switch to Arabic / تحويل للعربية" : "Switch to English"}
+          onClick={toggleLanguage}
+          className="flex flex-col items-center gap-1.5 w-14 py-3 rounded-xl text-slate-600 hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 transition-all cursor-pointer"
+        >
+          <span className="text-[13px] font-bold leading-none">
+            {language === "en" ? "ع" : "EN"}
+          </span>
+          <span className="text-[10px] font-semibold tracking-wide leading-none">
+            {language === "en" ? "عربي" : "English"}
           </span>
         </button>
 
@@ -201,8 +219,8 @@ export default function POSScreen({ user, onLogout }: Props) {
               const { icon: Icon } = NAV.find((n) => n.id === screen)!;
               return <Icon size={52} strokeWidth={1} className="mx-auto text-slate-800" />;
             })()}
-            <p className="text-slate-400 font-semibold text-lg">{NAV.find((n) => n.id === screen)?.label}</p>
-            <p className="text-sm text-slate-600">Coming soon</p>
+            <p className="text-slate-400 font-semibold text-lg">{t(NAV.find((n) => n.id === screen)!.labelKey)}</p>
+            <p className="text-sm text-slate-600">{t("nav.comingSoon")}</p>
           </div>
         </div>
       ) : (
@@ -213,42 +231,42 @@ export default function POSScreen({ user, onLogout }: Props) {
             <div className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--bd-faint)] bg-[var(--bg-panel)]">
               {/* Search */}
               <div className="flex-1 relative max-w-xl">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                <Search size={15} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
                 <input
                   ref={searchRef}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={handleSearchKey}
-                  placeholder="Search products or scan barcode…"
-                  className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-500 transition-colors"
+                  placeholder={t("pos.searchPlaceholder")}
+                  className="w-full ps-10 pe-4 py-2.5 bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-500 transition-colors"
                 />
               </div>
 
               {/* Barcode indicator */}
               <div className="flex items-center gap-1.5 text-slate-600 text-xs">
                 <QrCode size={13} />
-                <span>Scan ready</span>
+                <span>{t("pos.scanReady")}</span>
               </div>
 
               {/* Price tier switcher */}
               <div className="flex items-center gap-0.5 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl p-1">
-                {(["retail", "wholesale", "special"] as PriceTier[]).map((t) => (
+                {(["retail", "wholesale", "special"] as PriceTier[]).map((tier) => (
                   <button
-                    key={t}
-                    onClick={() => setPriceTier(t)}
+                    key={tier}
+                    onClick={() => setPriceTier(tier)}
                     className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
-                      priceTier === t
+                      priceTier === tier
                         ? "bg-[#14B8A6] text-slate-900 shadow-sm"
                         : "text-slate-500 hover:text-slate-300"
                     }`}
                   >
-                    {t === "retail" ? "مفرق" : t === "wholesale" ? "جملة" : "خاص"}
+                    {t(`pos.${tier}`)}
                   </button>
                 ))}
               </div>
 
               {/* Session / cashier info */}
-              <div className="flex items-center gap-2 text-xs text-slate-500 border-l border-[var(--bd-base)] pl-4">
+              <div className="flex items-center gap-2 text-xs text-slate-500 border-s border-[var(--bd-base)] ps-4">
                 <BoxesIcon size={13} />
                 <span className="text-slate-400 font-medium">{user.full_name}</span>
                 {sessionId ? (
@@ -257,14 +275,14 @@ export default function POSScreen({ user, onLogout }: Props) {
                       try {
                         await api.closeSession(sessionId);
                         setSessionId(null);
-                        showToast("Session closed");
+                        showToast(t("pos.sessionClosed"));
                       } catch {
-                        showToast("Failed to close session");
+                        showToast(t("pos.sessionFailClose"));
                       }
                     }}
-                    className="text-red-400 hover:text-red-300 hover:underline cursor-pointer ml-1"
+                    className="text-red-400 hover:text-red-300 hover:underline cursor-pointer ms-1"
                   >
-                    Close session
+                    {t("pos.closeSession")}
                   </button>
                 ) : (
                   <button
@@ -272,14 +290,14 @@ export default function POSScreen({ user, onLogout }: Props) {
                       try {
                         const s = await api.openCashSession(user.id, 0);
                         setSessionId(s.id);
-                        showToast("Session opened");
+                        showToast(t("pos.sessionOpened"));
                       } catch {
-                        showToast("Failed to open session");
+                        showToast(t("pos.sessionFailOpen"));
                       }
                     }}
-                    className="text-[#14B8A6] hover:underline cursor-pointer ml-1"
+                    className="text-[#14B8A6] hover:underline cursor-pointer ms-1"
                   >
-                    Open session
+                    {t("pos.openSession")}
                   </button>
                 )}
               </div>
@@ -295,7 +313,7 @@ export default function POSScreen({ user, onLogout }: Props) {
                     : "text-slate-500 hover:text-slate-300 hover:bg-[var(--bg-base)] border border-transparent"
                 }`}
               >
-                All
+                {t("pos.all")}
               </button>
               {categories.map((c) => (
                 <button
@@ -324,7 +342,7 @@ export default function POSScreen({ user, onLogout }: Props) {
               ) : products.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-700">
                   <Package size={52} strokeWidth={1} className="text-slate-800" />
-                  <p className="text-slate-500 text-sm">No products found</p>
+                  <p className="text-slate-500 text-sm">{t("pos.noProductsFound")}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-4">
@@ -339,7 +357,7 @@ export default function POSScreen({ user, onLogout }: Props) {
                       <button
                         key={p.id}
                         onClick={() => {
-                          if (p.is_frozen) { showToast("Product is frozen"); return; }
+                          if (p.is_frozen) { showToast(t("pos.productFrozen")); return; }
                           addToCart(p);
                         }}
                         disabled={p.is_frozen}
@@ -393,10 +411,10 @@ export default function POSScreen({ user, onLogout }: Props) {
 
             {/* ── Status bar ─────────────────────────────────────── */}
             <div className="flex items-center gap-3 px-5 py-2 border-t border-[var(--bd-faint)] bg-[var(--bg-panel)] text-[11px] text-slate-500">
-              <span>{products.length} products</span>
+              <span>{t("pos.products", { count: products.length })}</span>
               <span className="text-slate-800">·</span>
               <span>{new Date().toLocaleTimeString()}</span>
-              {!sessionId && <span className="text-amber-500">· No open session</span>}
+              {!sessionId && <span className="text-amber-500">· {t("pos.noSession")}</span>}
             </div>
           </div>
 

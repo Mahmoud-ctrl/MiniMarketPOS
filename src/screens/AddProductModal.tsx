@@ -144,6 +144,7 @@ function QuickItemForm({ categories, suppliers, user, onBack, onClose, onSaved }
     sell_price_wholesale: "", sell_price_special: "",
     tva_rate: "0", apply_tva: false, apply_discount: true,
     opening_stock: "", min_stock: "0", expiry_date: "",
+    is_perishable: false, default_shelf_life_days: "",
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
@@ -158,22 +159,24 @@ function QuickItemForm({ categories, suppliers, user, onBack, onClose, onSaved }
     setSaving(true); setError("");
     try {
       const product = await api.createProduct({
-        barcode:              f.barcode.trim()        || null,
-        internal_code:        f.internal_code.trim()  || null,
-        name:                 f.name.trim(),
-        category_id:          f.category_id ? Number(f.category_id) : null,
-        supplier_id:          f.supplier_id ? Number(f.supplier_id) : null,
-        item_type:            f.item_type,
-        unit:                 f.unit || "pcs",
-        cost_price:           toDb(f.cost_price),
-        sell_price_retail:    toDb(f.sell_price_retail),
-        sell_price_wholesale: toDb(f.sell_price_wholesale),
-        sell_price_special:   toDb(f.sell_price_special),
-        tva_rate:             parseFloat(f.tva_rate || "0") / 100,
-        apply_tva:            f.apply_tva,
-        apply_discount:       f.apply_discount,
-        min_stock:            parseFloat(f.min_stock || "0"),
-        expiry_date:          f.expiry_date || null,
+        barcode:                 f.barcode.trim()        || null,
+        internal_code:           f.internal_code.trim()  || null,
+        name:                    f.name.trim(),
+        category_id:             f.category_id ? Number(f.category_id) : null,
+        supplier_id:             f.supplier_id ? Number(f.supplier_id) : null,
+        item_type:               f.item_type,
+        unit:                    f.unit || "pcs",
+        cost_price:              toDb(f.cost_price),
+        sell_price_retail:       toDb(f.sell_price_retail),
+        sell_price_wholesale:    toDb(f.sell_price_wholesale),
+        sell_price_special:      toDb(f.sell_price_special),
+        tva_rate:                parseFloat(f.tva_rate || "0") / 100,
+        apply_tva:               f.apply_tva,
+        apply_discount:          f.apply_discount,
+        min_stock:               parseFloat(f.min_stock || "0"),
+        expiry_date:             f.expiry_date || null,
+        is_perishable:           f.is_perishable,
+        default_shelf_life_days: f.default_shelf_life_days ? parseInt(f.default_shelf_life_days) : null,
       });
       // Product saved — close modal now. Stock adjustment is best-effort.
       onSaved();
@@ -272,7 +275,17 @@ function QuickItemForm({ categories, suppliers, user, onBack, onClose, onSaved }
       <div className="flex gap-5">
         <Toggle checked={f.apply_tva}     onChange={v => setF(p => ({ ...p, apply_tva: v }))}     label="Apply TVA on sale" />
         <Toggle checked={f.apply_discount} onChange={v => setF(p => ({ ...p, apply_discount: v }))} label="Discountable" />
+        <Toggle checked={f.is_perishable}  onChange={v => setF(p => ({ ...p, is_perishable: v }))}  label="Perishable" />
       </div>
+
+      {f.is_perishable && (
+        <Field label="Typical shelf life (days) — optional">
+          <input className={iCls} type="number" min="1" step="1"
+            value={f.default_shelf_life_days}
+            onChange={e => setF(p => ({ ...p, default_shelf_life_days: e.target.value }))}
+            placeholder="Leave blank — learns from waste logs" />
+        </Field>
+      )}
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
       <FormFooter onClose={onClose} saving={saving} label="Add Product" />
@@ -643,6 +656,7 @@ function WeighedItemForm({ categories, suppliers, user: _user, onBack, onClose, 
     unit: "kg", cost_price: "", sell_price_retail: "",
     sell_price_wholesale: "", tva_rate: "0", apply_tva: false,
     min_stock: "0", expiry_date: "",
+    is_perishable: true, default_shelf_life_days: "",
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
@@ -657,20 +671,22 @@ function WeighedItemForm({ categories, suppliers, user: _user, onBack, onClose, 
     setSaving(true); setError("");
     try {
       await api.createProduct({
-        barcode:              f.barcode.trim() || null,
-        name:                 f.name.trim(),
-        category_id:          f.category_id ? Number(f.category_id) : null,
-        supplier_id:          f.supplier_id ? Number(f.supplier_id) : null,
-        unit:                 f.unit,
-        cost_price:           toDb(f.cost_price),
-        sell_price_retail:    toDb(f.sell_price_retail),
-        sell_price_wholesale: toDb(f.sell_price_wholesale),
-        tva_rate:             parseFloat(f.tva_rate || "0") / 100,
-        apply_tva:            f.apply_tva,
-        apply_discount:       true,
-        sold_by_amount:       true,
-        min_stock:            parseFloat(f.min_stock || "0"),
-        expiry_date:          f.expiry_date || null,
+        barcode:                 f.barcode.trim() || null,
+        name:                    f.name.trim(),
+        category_id:             f.category_id ? Number(f.category_id) : null,
+        supplier_id:             f.supplier_id ? Number(f.supplier_id) : null,
+        unit:                    f.unit,
+        cost_price:              toDb(f.cost_price),
+        sell_price_retail:       toDb(f.sell_price_retail),
+        sell_price_wholesale:    toDb(f.sell_price_wholesale),
+        tva_rate:                parseFloat(f.tva_rate || "0") / 100,
+        apply_tva:               f.apply_tva,
+        apply_discount:          true,
+        sold_by_amount:          true,
+        min_stock:               parseFloat(f.min_stock || "0"),
+        expiry_date:             f.expiry_date || null,
+        is_perishable:           f.is_perishable,
+        default_shelf_life_days: f.default_shelf_life_days ? parseInt(f.default_shelf_life_days) : null,
       });
       onSaved(); // Close as soon as product is saved
     } catch (err: unknown) {
@@ -748,7 +764,19 @@ function WeighedItemForm({ categories, suppliers, user: _user, onBack, onClose, 
         </Field>
       </div>
 
-      <Toggle checked={f.apply_tva} onChange={v => setF(p => ({ ...p, apply_tva: v }))} label="Apply TVA on sale" />
+      <div className="flex flex-wrap gap-4">
+        <Toggle checked={f.apply_tva}     onChange={v => setF(p => ({ ...p, apply_tva: v }))}     label="Apply TVA on sale" />
+        <Toggle checked={f.is_perishable} onChange={v => setF(p => ({ ...p, is_perishable: v }))} label="Perishable" />
+      </div>
+
+      {f.is_perishable && (
+        <Field label="Typical shelf life (days) — optional">
+          <input className={iCls} type="number" min="1" step="1"
+            value={f.default_shelf_life_days}
+            onChange={e => setF(p => ({ ...p, default_shelf_life_days: e.target.value }))}
+            placeholder="e.g. 5 for bananas — leave blank to learn from waste logs" />
+        </Field>
+      )}
 
       <div className="px-3 py-2 bg-[#14B8A6]/10 border border-[#14B8A6]/20 rounded-xl text-xs text-[#14B8A6]">
         ✓ Sell by amount is enabled — the cashier will enter the weight/quantity at checkout

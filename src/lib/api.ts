@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { CashierStatsRow, CashSession, Category, Customer, CustomerLedgerEntry, CustomerWithBalance, DailySalesRow, PriceTier, Product, ProductStock, Purchase, PurchaseWithItems, Sale, SaleWithItems, SalesSummary, Setting, Supplier, TopCustomerRow, TopProductRow, User } from "../types";
+import { CashierStatsRow, CashSession, Category, Customer, CustomerLedgerEntry, CustomerWithBalance, DailySalesRow, DailyWasteRow, PerishableAlert, PriceTier, Product, ProductStock, Purchase, PurchaseWithItems, Sale, SaleWithItems, SalesSummary, Setting, Supplier, TopCustomerRow, TopProductRow, TopWasterRow, User, WasteSummary } from "../types";
 
 interface LoginResult { user: User }
 
@@ -57,6 +57,8 @@ export const api = {
     sold_by_amount?: boolean;
     min_stock?: number;
     expiry_date?: string | null;
+    is_perishable?: boolean;
+    default_shelf_life_days?: number | null;
   }) => invoke<Product>("create_product", { payload }),
 
   updateProduct: (id: number, payload: {
@@ -78,6 +80,8 @@ export const api = {
     sold_by_amount?: boolean;
     min_stock?: number;
     expiry_date?: string | null;
+    is_perishable?: boolean;
+    default_shelf_life_days?: number | null;
   }) => invoke<Product>("update_product", { id, payload }),
 
   toggleProductFrozen: (id: number) =>
@@ -135,6 +139,16 @@ export const api = {
     notes:      args.notes ?? null,
     createdBy:  args.created_by,
   }),
+
+  getPerishableAlerts: () =>
+    invoke<PerishableAlert[]>("get_perishable_alerts"),
+
+  logWaste: (payload: {
+    product_id: number;
+    quantity: number;
+    notes?: string | null;
+    created_by: number;
+  }) => invoke<void>("log_waste", { payload }),
 
   // ── Sales ─────────────────────────────────────────────────────
   createSale: (payload: {
@@ -247,6 +261,15 @@ export const api = {
 
   getCashierStats: (dateFrom?: string | null, dateTo?: string | null) =>
     invoke<CashierStatsRow[]>("get_cashier_stats", { dateFrom: dateFrom ?? null, dateTo: dateTo ?? null }),
+
+  getWasteSummary: (dateFrom?: string | null, dateTo?: string | null) =>
+    invoke<WasteSummary>("get_waste_summary", { dateFrom: dateFrom ?? null, dateTo: dateTo ?? null }),
+
+  getTopWasters: (dateFrom?: string | null, dateTo?: string | null, limit?: number | null) =>
+    invoke<TopWasterRow[]>("get_top_wasters", { dateFrom: dateFrom ?? null, dateTo: dateTo ?? null, limit: limit ?? null }),
+
+  getDailyWaste: (dateFrom?: string | null, dateTo?: string | null) =>
+    invoke<DailyWasteRow[]>("get_daily_waste", { dateFrom: dateFrom ?? null, dateTo: dateTo ?? null }),
 
   // ── Customers ─────────────────────────────────────────────────
   getCustomers: () =>

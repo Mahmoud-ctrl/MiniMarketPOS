@@ -58,73 +58,79 @@ pub struct CreateSupplierPayload {
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct Product {
-    pub id:                   i64,
-    pub barcode:              Option<String>,
-    pub internal_code:        Option<String>,
-    pub name:                 String,
-    pub category_id:          Option<i64>,
-    pub supplier_id:          Option<i64>,
-    pub item_type:            String,
-    pub unit:                 String,
-    pub packaging_qty:        i32,
-    pub cost_price:           i64,
-    pub sell_price_retail:    i64,
-    pub sell_price_wholesale: i64,
-    pub sell_price_special:   i64,
-    pub tva_rate:             f64,
-    pub apply_tva:            bool,
-    pub apply_discount:       bool,
-    pub sold_by_amount:       bool,
-    pub min_stock:            f64,
-    pub expiry_date:          Option<NaiveDate>,
-    pub is_active:            bool,
-    pub is_frozen:            bool,
-    pub created_at:           DateTime<Utc>,
-    pub updated_at:           DateTime<Utc>,
+    pub id:                       i64,
+    pub barcode:                  Option<String>,
+    pub internal_code:            Option<String>,
+    pub name:                     String,
+    pub category_id:              Option<i64>,
+    pub supplier_id:              Option<i64>,
+    pub item_type:                String,
+    pub unit:                     String,
+    pub packaging_qty:            i32,
+    pub cost_price:               i64,
+    pub sell_price_retail:        i64,
+    pub sell_price_wholesale:     i64,
+    pub sell_price_special:       i64,
+    pub tva_rate:                 f64,
+    pub apply_tva:                bool,
+    pub apply_discount:           bool,
+    pub sold_by_amount:           bool,
+    pub min_stock:                f64,
+    pub expiry_date:              Option<NaiveDate>,
+    pub is_active:                bool,
+    pub is_frozen:                bool,
+    pub is_perishable:            bool,
+    pub default_shelf_life_days:  Option<i32>,
+    pub created_at:               DateTime<Utc>,
+    pub updated_at:               DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CreateProductPayload {
-    pub barcode:              Option<String>,
-    pub internal_code:        Option<String>,
-    pub name:                 String,
-    pub category_id:          Option<i64>,
-    pub supplier_id:          Option<i64>,
-    pub item_type:            Option<String>,
-    pub unit:                 Option<String>,
-    pub packaging_qty:        Option<i32>,
-    pub cost_price:           i64,
-    pub sell_price_retail:    i64,
-    pub sell_price_wholesale: Option<i64>,
-    pub sell_price_special:   Option<i64>,
-    pub tva_rate:             Option<f64>,
-    pub apply_tva:            Option<bool>,
-    pub apply_discount:       Option<bool>,
-    pub sold_by_amount:       Option<bool>,
-    pub min_stock:            Option<f64>,
-    pub expiry_date:          Option<String>, // "YYYY-MM-DD"
+    pub barcode:                 Option<String>,
+    pub internal_code:           Option<String>,
+    pub name:                    String,
+    pub category_id:             Option<i64>,
+    pub supplier_id:             Option<i64>,
+    pub item_type:               Option<String>,
+    pub unit:                    Option<String>,
+    pub packaging_qty:           Option<i32>,
+    pub cost_price:              i64,
+    pub sell_price_retail:       i64,
+    pub sell_price_wholesale:    Option<i64>,
+    pub sell_price_special:      Option<i64>,
+    pub tva_rate:                Option<f64>,
+    pub apply_tva:               Option<bool>,
+    pub apply_discount:          Option<bool>,
+    pub sold_by_amount:          Option<bool>,
+    pub min_stock:               Option<f64>,
+    pub expiry_date:             Option<String>, // "YYYY-MM-DD"
+    pub is_perishable:           Option<bool>,
+    pub default_shelf_life_days: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateProductPayload {
-    pub barcode:              Option<String>,
-    pub internal_code:        Option<String>,
-    pub name:                 Option<String>,
-    pub category_id:          Option<i64>,
-    pub supplier_id:          Option<i64>,
-    pub item_type:            Option<String>,
-    pub unit:                 Option<String>,
-    pub packaging_qty:        Option<i32>,
-    pub cost_price:           Option<i64>,
-    pub sell_price_retail:    Option<i64>,
-    pub sell_price_wholesale: Option<i64>,
-    pub sell_price_special:   Option<i64>,
-    pub tva_rate:             Option<f64>,
-    pub apply_tva:            Option<bool>,
-    pub apply_discount:       Option<bool>,
-    pub sold_by_amount:       Option<bool>,
-    pub min_stock:            Option<f64>,
-    pub expiry_date:          Option<String>,
+    pub barcode:                 Option<String>,
+    pub internal_code:           Option<String>,
+    pub name:                    Option<String>,
+    pub category_id:             Option<i64>,
+    pub supplier_id:             Option<i64>,
+    pub item_type:               Option<String>,
+    pub unit:                    Option<String>,
+    pub packaging_qty:           Option<i32>,
+    pub cost_price:              Option<i64>,
+    pub sell_price_retail:       Option<i64>,
+    pub sell_price_wholesale:    Option<i64>,
+    pub sell_price_special:      Option<i64>,
+    pub tva_rate:                Option<f64>,
+    pub apply_tva:               Option<bool>,
+    pub apply_discount:          Option<bool>,
+    pub sold_by_amount:          Option<bool>,
+    pub min_stock:               Option<f64>,
+    pub expiry_date:             Option<String>,
+    pub is_perishable:           Option<bool>,
+    pub default_shelf_life_days: Option<i32>,
 }
 
 // ── Customers ────────────────────────────────────────────────────────────────
@@ -259,30 +265,55 @@ pub struct CustomerLedgerEntry {
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct ProductStock {
-    pub product_id:           i64,
-    pub barcode:              Option<String>,
-    pub internal_code:        Option<String>,
-    pub name:                 String,
-    pub category_id:          Option<i64>,
-    pub category_name:        Option<String>,
-    pub supplier_id:          Option<i64>,
-    pub item_type:            String,
-    pub unit:                 String,
-    pub packaging_qty:        i32,
-    pub cost_price:           i64,
-    pub sell_price_retail:    i64,
-    pub sell_price_wholesale: i64,
-    pub sell_price_special:   i64,
-    pub tva_rate:             f64,
-    pub apply_tva:            bool,
-    pub apply_discount:       bool,
-    pub sold_by_amount:       bool,
-    pub min_stock:            f64,
-    pub expiry_date:          Option<NaiveDate>,
-    pub is_active:            bool,
-    pub is_frozen:            bool,
-    pub stock_qty:            f64,
-    pub low_stock_flag:       bool,
+    pub product_id:              i64,
+    pub barcode:                 Option<String>,
+    pub internal_code:           Option<String>,
+    pub name:                    String,
+    pub category_id:             Option<i64>,
+    pub category_name:           Option<String>,
+    pub supplier_id:             Option<i64>,
+    pub item_type:               String,
+    pub unit:                    String,
+    pub packaging_qty:           i32,
+    pub cost_price:              i64,
+    pub sell_price_retail:       i64,
+    pub sell_price_wholesale:    i64,
+    pub sell_price_special:      i64,
+    pub tva_rate:                f64,
+    pub apply_tva:               bool,
+    pub apply_discount:          bool,
+    pub sold_by_amount:          bool,
+    pub min_stock:               f64,
+    pub expiry_date:             Option<NaiveDate>,
+    pub is_active:               bool,
+    pub is_frozen:               bool,
+    pub is_perishable:           bool,
+    pub default_shelf_life_days: Option<i32>,
+    pub stock_qty:               f64,
+    pub low_stock_flag:          bool,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct PerishableAlert {
+    pub product_id:              i64,
+    pub name:                    String,
+    pub unit:                    String,
+    pub category_name:           Option<String>,
+    pub stock_qty:               f64,
+    pub sell_price_retail:       i64,
+    pub cost_price:              i64,
+    pub default_shelf_life_days: Option<i32>,
+    pub last_received_at:        Option<DateTime<Utc>>,
+    pub estimated_expiry:        Option<NaiveDate>,
+    pub days_until_expiry:       Option<i32>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LogWastePayload {
+    pub product_id: i64,
+    pub quantity:   f64,
+    pub notes:      Option<String>,
+    pub created_by: i64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -369,6 +400,31 @@ pub struct Setting {
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct WasteSummary {
+    pub total_waste_value:  i64,
+    pub total_waste_events: i64,
+    pub total_waste_qty:    f64,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct TopWasterRow {
+    pub product_id:   i64,
+    pub product_name: String,
+    pub unit:         String,
+    pub waste_qty:    f64,
+    pub waste_value:  i64,
+    pub waste_events: i64,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct DailyWasteRow {
+    pub date:         String,
+    pub waste_value:  i64,
+    pub waste_qty:    f64,
+    pub waste_events: i64,
+}
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct SalesSummary {

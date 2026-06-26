@@ -61,6 +61,8 @@ pub fn run() {
             commands::inventory::get_low_stock,
             commands::inventory::adjust_inventory,
             commands::inventory::receive_stock,
+            commands::inventory::get_perishable_alerts,
+            commands::inventory::log_waste,
             // Purchases
             commands::purchases::create_purchase,
             commands::purchases::get_purchases,
@@ -79,6 +81,9 @@ pub fn run() {
             commands::reports::get_top_products,
             commands::reports::get_top_customers,
             commands::reports::get_cashier_stats,
+            commands::reports::get_waste_summary,
+            commands::reports::get_top_wasters,
+            commands::reports::get_daily_waste,
             // Customers
             commands::customers::get_customers,
             commands::customers::search_customers,

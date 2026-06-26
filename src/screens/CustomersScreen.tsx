@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Users, Plus, X, ChevronRight, Banknote, AlertCircle,
   TrendingDown, TrendingUp, Clock, CheckCircle, RefreshCw,
@@ -10,11 +11,14 @@ import Modal from "../components/Modal";
 
 interface Props { user: User }
 
+const iCls = "w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors";
+
 // ── New customer form ─────────────────────────────────────────────────────────
 function CreateCustomerModal({ onClose, onCreate }: {
   onClose:  () => void;
   onCreate: (c: CustomerWithBalance) => void;
 }) {
+  const { t } = useTranslation();
   const [name,  setName]  = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -22,7 +26,7 @@ function CreateCustomerModal({ onClose, onCreate }: {
   const [busy,  setBusy]  = useState(false);
 
   const submit = async () => {
-    if (!name.trim()) { setError("Name is required"); return; }
+    if (!name.trim()) { setError(t("customers.nameRequired")); return; }
     setBusy(true); setError("");
     try {
       const c = await api.createCustomer(name.trim(), phone.trim() || null, notes.trim() || null);
@@ -34,7 +38,7 @@ function CreateCustomerModal({ onClose, onCreate }: {
   };
 
   return (
-    <Modal title="New Customer" onClose={onClose}>
+    <Modal title={t("customers.newCustomer")} onClose={onClose}>
       <div className="p-6 space-y-4 w-[380px]">
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-2.5 text-red-400 text-xs">
@@ -43,32 +47,32 @@ function CreateCustomerModal({ onClose, onCreate }: {
         )}
         <div className="space-y-3">
           <div>
-            <label className="block text-slate-400 text-xs mb-1.5">Full name <span className="text-red-400">*</span></label>
+            <label className="block text-slate-400 text-xs mb-1.5">
+              {t("customers.fullName")} <span className="text-red-400">*</span>
+            </label>
             <input value={name} onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === "Enter" && submit()}
-              className="w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
-              placeholder="e.g. Ahmad Khalil" />
+              className={iCls} placeholder="e.g. Ahmad Khalil" />
           </div>
           <div>
-            <label className="block text-slate-400 text-xs mb-1.5">Phone</label>
+            <label className="block text-slate-400 text-xs mb-1.5">{t("customers.phone")}</label>
             <input value={phone} onChange={e => setPhone(e.target.value)}
-              className="w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
-              placeholder="+961 XX XXX XXX" />
+              className={iCls} placeholder="+961 XX XXX XXX" />
           </div>
           <div>
-            <label className="block text-slate-400 text-xs mb-1.5">Notes</label>
+            <label className="block text-slate-400 text-xs mb-1.5">{t("customers.notes")}</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-              className="w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors resize-none"
-              placeholder="Optional notes…" />
+              className={iCls + " resize-none"}
+              placeholder={t("common.optional")} />
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-1">
           <button onClick={onClose} className="px-4 py-2 text-slate-400 hover:text-[var(--tx-base)] text-sm transition-colors cursor-pointer">
-            Cancel
+            {t("common.cancel")}
           </button>
           <button onClick={submit} disabled={busy}
             className="px-5 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50">
-            {busy ? "Creating…" : "Create"}
+            {busy ? t("customers.creating") : t("customers.create")}
           </button>
         </div>
       </div>
@@ -83,6 +87,7 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
   onClose:   () => void;
   onUpdated: (c: CustomerWithBalance) => void;
 }) {
+  const { t } = useTranslation();
   const { fmt, toDb } = useCurrency();
   const [ledger,  setLedger]  = useState<CustomerLedgerEntry[]>([]);
   const [sales,   setSales]   = useState<Sale[]>([]);
@@ -113,7 +118,6 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
 
   useEffect(() => { reload(); }, [customer.id]);
 
-  // Per-sale remaining balance from ledger entries
   const saleRemaining = (saleId: number) =>
     ledger.filter(e => e.sale_id === saleId).reduce((s, e) => s + e.amount, 0);
 
@@ -179,7 +183,7 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
             : "bg-emerald-500/10 border-emerald-500/20"
         }`}>
           <div>
-            <p className="text-slate-400 text-xs">Outstanding balance</p>
+            <p className="text-slate-400 text-xs">{t("customers.detail.outstandingBalance")}</p>
             <p className={`font-bold text-2xl tabular-nums ${balanceDue > 0 ? "text-amber-400" : "text-emerald-400"}`}>
               {fmt(balanceDue)}
             </p>
@@ -191,11 +195,11 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
                 onClick={() => { setPaying(!paying); setError(""); }}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-xs font-medium rounded-xl transition-colors cursor-pointer"
               >
-                <Banknote size={13} /> Record payment
+                <Banknote size={13} /> {t("customers.detail.recordPayment")}
               </button>
             ) : (
               <span className="text-emerald-400 text-xs font-medium flex items-center gap-1">
-                <CheckCircle size={12} /> All settled
+                <CheckCircle size={12} /> {t("customers.detail.allSettled")}
               </span>
             )}
           </div>
@@ -204,16 +208,16 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
         {/* General payment form */}
         {paying && (
           <div className="space-y-3 p-4 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl">
-            <p className="text-[var(--tx-base)] text-sm font-semibold">Record payment received</p>
+            <p className="text-[var(--tx-base)] text-sm font-semibold">{t("customers.detail.recordPaymentTitle")}</p>
             <div className="flex gap-2">
               <input
                 type="number" min="0" step="0.01"
-                placeholder="Amount"
+                placeholder={t("customers.detail.amount")}
                 value={amount} onChange={e => setAmount(e.target.value)}
                 className="flex-1 bg-[var(--bg-panel)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-3 py-2 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
               />
               <input
-                type="text" placeholder="Note (optional)"
+                type="text" placeholder={t("customers.detail.noteOptional")}
                 value={payNote} onChange={e => setPayNote(e.target.value)}
                 className="flex-1 bg-[var(--bg-panel)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-3 py-2 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
               />
@@ -222,11 +226,11 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
             <div className="flex gap-2 justify-end">
               <button onClick={() => { setPaying(false); setError(""); }}
                 className="px-3 py-1.5 text-slate-400 hover:text-[var(--tx-base)] text-xs transition-colors cursor-pointer">
-                Cancel
+                {t("common.cancel")}
               </button>
               <button onClick={handleGeneralPayment} disabled={busy === "general"}
                 className="px-4 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 text-xs font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50">
-                {busy === "general" ? "Saving…" : "Confirm payment"}
+                {busy === "general" ? t("customers.detail.saving") : t("customers.detail.confirmPayment")}
               </button>
             </div>
           </div>
@@ -236,8 +240,8 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
           <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
             <AlertCircle size={13} />
             {loadErr}
-            <button onClick={reload} className="ml-auto flex items-center gap-1 hover:text-red-300 cursor-pointer">
-              <RefreshCw size={11} /> Retry
+            <button onClick={reload} className="ms-auto flex items-center gap-1 hover:text-red-300 cursor-pointer">
+              <RefreshCw size={11} /> {t("customers.detail.retry")}
             </button>
           </div>
         )}
@@ -248,13 +252,13 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
           </div>
         ) : (
           <>
-            {/* ── Pending loans ─────────────────────────────────────────── */}
+            {/* Pending loans */}
             {pendingSales.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Clock size={13} className="text-amber-400" />
                   <p className="text-amber-400 text-xs font-semibold uppercase tracking-wide">
-                    Pending loans ({pendingSales.length})
+                    {t("customers.detail.pendingLoans", { count: pendingSales.length })}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -269,11 +273,11 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
                             Sale #{sale.id}
                           </p>
                           <p className="text-slate-500 text-[10px] mt-0.5">
-                            {new Date(sale.created_at).toLocaleString()} · Total {fmt(sale.total_amount)}
+                            {new Date(sale.created_at).toLocaleString()} · {fmt(sale.total_amount)}
                           </p>
                           {remaining < sale.total_amount - sale.amount_paid && (
                             <p className="text-[#14B8A6] text-[10px]">
-                              Partially paid — {fmt(remaining)} left
+                              {t("customers.detail.partiallyPaid", { amount: fmt(remaining) })}
                             </p>
                           )}
                         </div>
@@ -287,7 +291,7 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                           >
                             <CheckCircle size={11} />
-                            {isThisBusy ? "Saving…" : "Received"}
+                            {isThisBusy ? t("customers.detail.saving") : t("customers.detail.received")}
                           </button>
                         </div>
                       </div>
@@ -300,17 +304,24 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
               </div>
             )}
 
-            {/* ── Transaction history ───────────────────────────────────── */}
+            {/* Transaction history */}
             <div className="space-y-2">
               <p className="text-slate-400 text-xs font-semibold uppercase tracking-wide">
-                Transaction history
+                {t("customers.detail.transactionHistory")}
               </p>
               {ledger.length === 0 ? (
-                <p className="text-slate-600 text-xs py-4 text-center">No transactions yet</p>
+                <p className="text-slate-600 text-xs py-4 text-center">{t("customers.detail.noTransactions")}</p>
               ) : (
                 <div className="space-y-1.5 max-h-52 overflow-y-auto">
                   {ledger.map(entry => {
                     const isPayment = entry.entry_type === "payment" || entry.entry_type === "reversal";
+                    const label = entry.entry_type === "credit"
+                      ? t("customers.detail.loan", { id: entry.sale_id ?? "—" })
+                      : entry.entry_type === "payment"
+                        ? entry.sale_id
+                          ? t("customers.detail.paymentForSale", { id: entry.sale_id })
+                          : t("customers.detail.paymentReceived")
+                        : t("customers.detail.voidReversal", { id: entry.sale_id ?? "—" });
                     return (
                       <div key={entry.id}
                         className="flex items-center justify-between px-3 py-2.5 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl text-sm">
@@ -319,20 +330,14 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
                             ? <TrendingDown size={13} className="text-emerald-400 flex-shrink-0" />
                             : <TrendingUp   size={13} className="text-amber-400   flex-shrink-0" />}
                           <div className="min-w-0">
-                            <p className="text-[var(--tx-base)] text-xs font-medium truncate">
-                              {entry.entry_type === "credit"
-                                ? `Loan — Sale #${entry.sale_id ?? "—"}`
-                                : entry.entry_type === "payment"
-                                  ? `Payment received${entry.sale_id ? ` (Sale #${entry.sale_id})` : ""}`
-                                  : `Void reversal — Sale #${entry.sale_id ?? "—"}`}
-                            </p>
+                            <p className="text-[var(--tx-base)] text-xs font-medium truncate">{label}</p>
                             <p className="text-slate-500 text-[10px]">
                               {new Date(entry.created_at).toLocaleString()}
                               {entry.notes ? ` · ${entry.notes}` : ""}
                             </p>
                           </div>
                         </div>
-                        <span className={`font-bold tabular-nums text-xs flex-shrink-0 ml-3 ${isPayment ? "text-emerald-400" : "text-amber-400"}`}>
+                        <span className={`font-bold tabular-nums text-xs flex-shrink-0 ms-3 ${isPayment ? "text-emerald-400" : "text-amber-400"}`}>
                           {isPayment ? "−" : "+"}{fmt(Math.abs(entry.amount))}
                         </span>
                       </div>
@@ -342,11 +347,11 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
               )}
             </div>
 
-            {/* ── Past completed sales ──────────────────────────────────── */}
+            {/* Completed sales */}
             {sales.filter(s => s.status === "completed").length > 0 && (
               <div className="space-y-2">
                 <p className="text-slate-400 text-xs font-semibold uppercase tracking-wide">
-                  Completed sales
+                  {t("customers.detail.completedSales")}
                 </p>
                 <div className="space-y-1.5 max-h-40 overflow-y-auto">
                   {sales.filter(s => s.status === "completed").map(sale => (
@@ -359,7 +364,7 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
                       <div className="flex items-center gap-2">
                         <span className="text-slate-300 text-xs tabular-nums font-semibold">{fmt(sale.total_amount)}</span>
                         <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-medium">
-                          Paid
+                          {t("customers.detail.paid")}
                         </span>
                       </div>
                     </div>
@@ -376,6 +381,7 @@ function CustomerDetail({ customer, user, onClose, onUpdated }: {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function CustomersScreen({ user }: Props) {
+  const { t } = useTranslation();
   const { fmt } = useCurrency();
   const [customers, setCustomers] = useState<CustomerWithBalance[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -424,10 +430,10 @@ export default function CustomersScreen({ user }: Props) {
               <Users size={17} className="text-[#14B8A6]" />
             </div>
             <div>
-              <h1 className="text-[var(--tx-base)] font-bold text-lg leading-none">Customers</h1>
+              <h1 className="text-[var(--tx-base)] font-bold text-lg leading-none">{t("customers.title")}</h1>
               <p className="text-slate-500 text-xs mt-0.5">
-                {customers.length} customer{customers.length !== 1 ? "s" : ""}
-                {pendingCount > 0 && ` · ${pendingCount} with outstanding loans`}
+                {customers.length} {t("customers.title").toLowerCase()}
+                {pendingCount > 0 && ` · ${pendingCount} ${t("customers.outstanding")}`}
               </p>
             </div>
           </div>
@@ -438,7 +444,7 @@ export default function CustomersScreen({ user }: Props) {
             </button>
             <button onClick={() => setCreating(true)}
               className="flex items-center gap-2 px-4 py-2 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 border border-[#14B8A6]/30 text-[#14B8A6] text-sm font-medium rounded-xl transition-colors cursor-pointer">
-              <Plus size={14} /> New customer
+              <Plus size={14} /> {t("customers.newCustomer")}
             </button>
           </div>
         </div>
@@ -447,23 +453,21 @@ export default function CustomersScreen({ user }: Props) {
         {totalOwed > 0 && (
           <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
             <AlertCircle size={14} className="text-amber-400 flex-shrink-0" />
-            <div>
-              <p className="text-amber-400 text-xs font-semibold">
-                {fmt(totalOwed)} outstanding across {pendingCount} customer{pendingCount !== 1 ? "s" : ""}
-              </p>
-            </div>
+            <p className="text-amber-400 text-xs font-semibold">
+              {t("customers.outstandingBanner", { amount: fmt(totalOwed), count: pendingCount })}
+            </p>
           </div>
         )}
 
         {/* Search */}
         <div className="relative max-w-sm">
-          <input type="text" placeholder="Search by name or phone…"
+          <input type="text" placeholder={t("customers.searchPlaceholder")}
             value={search} onChange={e => setSearch(e.target.value)}
             className="w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl px-4 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
           />
           {search && (
             <button onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer">
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer">
               <X size={13} />
             </button>
           )}
@@ -475,8 +479,8 @@ export default function CustomersScreen({ user }: Props) {
         <div className="mx-6 mt-4 flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
           <AlertCircle size={13} />
           {loadErr}
-          <button onClick={load} className="ml-auto flex items-center gap-1 hover:text-red-300 cursor-pointer">
-            <RefreshCw size={11} /> Retry
+          <button onClick={load} className="ms-auto flex items-center gap-1 hover:text-red-300 cursor-pointer">
+            <RefreshCw size={11} /> {t("customers.detail.retry")}
           </button>
         </div>
       )}
@@ -491,29 +495,29 @@ export default function CustomersScreen({ user }: Props) {
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Users size={44} strokeWidth={1} className="text-slate-800" />
             <p className="text-slate-500 text-sm">
-              {search ? "No customers match your search" : "No customers yet — add one to get started"}
+              {search ? t("customers.noCustomersSearch") : t("customers.noCustomers")}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-[#0F1E38]">
+          <div className="divide-y divide-[var(--bd-faint)]">
             {filtered.map(c => (
               <button key={c.id} onClick={() => setSelected(c)}
-                className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[var(--bg-base)] transition-colors cursor-pointer text-left">
+                className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[var(--bg-base)] transition-colors cursor-pointer text-start">
                 <div className="w-9 h-9 rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-[#14B8A6] text-sm font-bold">{c.name.charAt(0).toUpperCase()}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[var(--tx-base)] text-sm font-medium">{c.name}</p>
-                  <p className="text-slate-500 text-xs">{c.phone ?? "No phone"}</p>
+                  <p className="text-slate-500 text-xs">{c.phone ?? t("customers.noPhone")}</p>
                 </div>
                 {c.balance_due > 0 ? (
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-end flex-shrink-0">
                     <p className="text-amber-400 font-bold text-sm tabular-nums">{fmt(c.balance_due)}</p>
-                    <p className="text-amber-400/60 text-[10px]">outstanding</p>
+                    <p className="text-amber-400/60 text-[10px]">{t("customers.outstanding")}</p>
                   </div>
                 ) : (
                   <span className="text-emerald-400 text-xs font-medium flex-shrink-0 flex items-center gap-1">
-                    <CheckCircle size={11} /> Settled
+                    <CheckCircle size={11} /> {t("customers.settled")}
                   </span>
                 )}
                 <ChevronRight size={14} className="text-slate-600 flex-shrink-0" />

@@ -3,7 +3,10 @@ use tauri::State;
 use crate::{
     db::AppState,
     error::AppError,
-    models::{CashierStatsRow, DailySalesRow, SalesSummary, TopCustomerRow, TopProductRow},
+    models::{
+        CashierStatsRow, DailySalesRow, DailyWasteRow, SalesSummary,
+        TopCustomerRow, TopProductRow, TopWasterRow, WasteSummary,
+    },
 };
 
 #[tauri::command]
@@ -132,6 +135,101 @@ pub async fn get_top_customers(
     .bind(date_from)
     .bind(date_to)
     .bind(limit.unwrap_or(10))
+    .fetch_all(&state.db)
+    .await?;
+
+    Ok(rows)
+}
+
+/// Total waste loss, event count, and quantity for the period.
+#[tauri::command]
+pub async fn get_waste_summary(
+    state:     State<'_, AppState>,
+    date_from: Option<String>,
+    date_to:   Option<String>,
+) -> Result<WasteSummary, AppError> {
+    let row = sqlx::query_as::<_, WasteSummary>(
+        r#"
+        SELECT
+            COALESCE(SUM(ABS(m.quantity_delta) * p.cost_price), 0)::BIGINT AS total_waste_value,
+            COUNT(*)::BIGINT                                                  AS total_waste_events,
+            COALESCE(SUM(ABS(m.quantity_delta)), 0.0)                        AS total_waste_qty
+        FROM inventory_movements m
+        JOIN products p ON p.id = m.product_id
+        WHERE m.movement_type = 'waste'
+          AND ($1::TIMESTAMPTZ IS NULL OR m.created_at >= $1::TIMESTAMPTZ)
+          AND ($2::TIMESTAMPTZ IS NULL OR m.created_at <= $2::TIMESTAMPTZ)
+        "#,
+    )
+    .bind(date_from)
+    .bind(date_to)
+    .fetch_one(&state.db)
+    .await?;
+
+    Ok(row)
+}
+
+/// Products ranked by waste value (qty × cost_price) descending.
+#[tauri::command]
+pub async fn get_top_wasters(
+    state:     State<'_, AppState>,
+    date_from: Option<String>,
+    date_to:   Option<String>,
+    limit:     Option<i64>,
+) -> Result<Vec<TopWasterRow>, AppError> {
+    let rows = sqlx::query_as::<_, TopWasterRow>(
+        r#"
+        SELECT
+            p.id                                                              AS product_id,
+            p.name                                                            AS product_name,
+            p.unit,
+            SUM(ABS(m.quantity_delta))                                        AS waste_qty,
+            SUM(ABS(m.quantity_delta) * p.cost_price)::BIGINT                AS waste_value,
+            COUNT(*)::BIGINT                                                  AS waste_events
+        FROM inventory_movements m
+        JOIN products p ON p.id = m.product_id
+        WHERE m.movement_type = 'waste'
+          AND ($1::TIMESTAMPTZ IS NULL OR m.created_at >= $1::TIMESTAMPTZ)
+          AND ($2::TIMESTAMPTZ IS NULL OR m.created_at <= $2::TIMESTAMPTZ)
+        GROUP BY p.id, p.name, p.unit
+        ORDER BY waste_value DESC
+        LIMIT $3
+        "#,
+    )
+    .bind(date_from)
+    .bind(date_to)
+    .bind(limit.unwrap_or(10))
+    .fetch_all(&state.db)
+    .await?;
+
+    Ok(rows)
+}
+
+/// Daily waste aggregates for the bar chart.
+#[tauri::command]
+pub async fn get_daily_waste(
+    state:     State<'_, AppState>,
+    date_from: Option<String>,
+    date_to:   Option<String>,
+) -> Result<Vec<DailyWasteRow>, AppError> {
+    let rows = sqlx::query_as::<_, DailyWasteRow>(
+        r#"
+        SELECT
+            TO_CHAR(m.created_at, 'YYYY-MM-DD')              AS date,
+            SUM(ABS(m.quantity_delta) * p.cost_price)::BIGINT AS waste_value,
+            SUM(ABS(m.quantity_delta))                         AS waste_qty,
+            COUNT(*)::BIGINT                                   AS waste_events
+        FROM inventory_movements m
+        JOIN products p ON p.id = m.product_id
+        WHERE m.movement_type = 'waste'
+          AND ($1::TIMESTAMPTZ IS NULL OR m.created_at >= $1::TIMESTAMPTZ)
+          AND ($2::TIMESTAMPTZ IS NULL OR m.created_at <= $2::TIMESTAMPTZ)
+        GROUP BY TO_CHAR(m.created_at, 'YYYY-MM-DD')
+        ORDER BY 1 ASC
+        "#,
+    )
+    .bind(date_from)
+    .bind(date_to)
     .fetch_all(&state.db)
     .await?;
 

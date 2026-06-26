@@ -2,6 +2,7 @@ import {
   Minus, Plus, ShoppingBag, X, CheckCircle, Printer,
   ChevronLeft, ChevronRight, PlusCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
@@ -41,6 +42,7 @@ function ReceiptView({
   storeInfo:     { name: string; address: string; phone: string; tagline: string; logo: string };
   onDone:        () => void;
 }) {
+  const { t } = useTranslation();
   const { fmt, fmtAlt, showAlt, symbol, altSymbol } = useCurrency();
   const change    = amountPaid - sale.total_amount;
   const isPending = change < 0;
@@ -69,9 +71,9 @@ function ReceiptView({
         </div>
         <div className="text-center">
           <p className="text-[var(--tx-base)] font-bold text-base leading-none">
-            {isPending ? "Sale Complete — Debt Recorded" : "Sale Complete"}
+            {isPending ? t("cart.saleCompleteDebt") : t("cart.saleComplete")}
           </p>
-          <p className="text-slate-500 text-xs mt-1">Receipt #{sale.id}</p>
+          <p className="text-slate-500 text-xs mt-1">{t("cart.receipt", { id: sale.id })}</p>
         </div>
       </div>
 
@@ -82,7 +84,7 @@ function ReceiptView({
               <span className="text-[var(--tx-base)] font-medium truncate block">{item.product.name}</span>
               <span className="text-slate-500 text-xs">{fmt(item.unit_price)} × {item.quantity}</span>
             </div>
-            <span className="text-slate-400 font-semibold tabular-nums ml-3">
+            <span className="text-slate-400 font-semibold tabular-nums ms-3">
               {fmt(item.unit_price * item.quantity)}
             </span>
           </div>
@@ -92,17 +94,17 @@ function ReceiptView({
       <div className="border-t border-[var(--bd-faint)] px-5 py-4 space-y-2">
         {sale.discount > 0 && (
           <div className="flex justify-between text-sm text-emerald-400">
-            <span>Discount</span><span className="tabular-nums">−{fmt(sale.discount)}</span>
+            <span>{t("cart.discount")}</span><span className="tabular-nums">−{fmt(sale.discount)}</span>
           </div>
         )}
         {sale.tax > 0 && (
           <div className="flex justify-between text-sm text-slate-500">
-            <span>TVA</span><span className="tabular-nums">{fmt(sale.tax)}</span>
+            <span>{t("cart.tva")}</span><span className="tabular-nums">{fmt(sale.tax)}</span>
           </div>
         )}
         <div className="flex justify-between items-center pt-1 border-t border-[var(--bd-base)]">
-          <span className="text-[var(--tx-base)] font-bold">Total</span>
-          <div className="text-right">
+          <span className="text-[var(--tx-base)] font-bold">{t("cart.total")}</span>
+          <div className="text-end">
             <div className="text-[#14B8A6] font-bold text-xl tabular-nums">{fmt(sale.total_amount)}</div>
             {showAlt && <div className="text-slate-500 text-xs tabular-nums">{fmtAlt(sale.total_amount)}</div>}
           </div>
@@ -113,8 +115,8 @@ function ReceiptView({
               ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
               : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
           }`}>
-            <span>{isPending ? "Still owed" : "Change"}</span>
-            <div className="text-right">
+            <span>{isPending ? t("cart.stillOwed") : t("cart.change")}</span>
+            <div className="text-end">
               <div className="tabular-nums">{fmt(Math.abs(change))}</div>
               {showAlt && <div className="text-xs opacity-70 tabular-nums">{fmtAlt(Math.abs(change))}</div>}
             </div>
@@ -122,7 +124,7 @@ function ReceiptView({
         )}
         {method === "credit" && (
           <div className="flex justify-between items-center px-3 py-2.5 rounded-xl border bg-orange-500/10 border-orange-500/20 text-orange-400 text-sm font-bold">
-            <span>Recorded as debt</span>
+            <span>{t("cart.recordedAsDebt")}</span>
             <div className="tabular-nums">{fmt(sale.total_amount - amountPaid)}</div>
           </div>
         )}
@@ -131,13 +133,13 @@ function ReceiptView({
             onClick={handlePrint}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-[var(--bg-card)] hover:bg-[var(--bg-raised)] border border-[var(--bd-base)] text-slate-400 text-sm font-medium rounded-xl transition-colors cursor-pointer flex-shrink-0"
           >
-            <Printer size={15} /> Print
+            <Printer size={15} /> {t("cart.print")}
           </button>
           <button
             onClick={onDone}
             className="flex-1 py-3 rounded-xl bg-[#14B8A6] hover:bg-[#0D9488] active:scale-[0.98] text-slate-900 font-bold text-[15px] transition-all cursor-pointer shadow-lg shadow-[#14B8A6]/25"
           >
-            New Sale
+            {t("cart.newSale")}
           </button>
         </div>
       </div>
@@ -159,6 +161,7 @@ function BookNav({
   onAdd:       () => void;
   onRemove:    (id: number) => void;
 }) {
+  const { t } = useTranslation();
   const active = tabs[activeIdx];
 
   return (
@@ -180,7 +183,7 @@ function BookNav({
           </span>
           {active?.confirmed && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium leading-none">
-              done
+              {t("cart.orderDone")}
             </span>
           )}
           {active && active.itemCount > 0 && !active.confirmed && (
@@ -191,17 +194,17 @@ function BookNav({
         </div>
 
         <div className="flex items-center gap-1">
-          {tabs.map((t) => (
+          {tabs.map((tab) => (
             <button
-              key={t.id}
-              onClick={() => onJump(t.id)}
-              title={t.label}
+              key={tab.id}
+              onClick={() => onJump(tab.id)}
+              title={tab.label}
               className={`rounded-full transition-all cursor-pointer ${
-                t.id === activeTabId
+                tab.id === activeTabId
                   ? "w-4 h-1.5 bg-[#14B8A6]"
-                  : t.confirmed
+                  : tab.confirmed
                   ? "w-1.5 h-1.5 bg-emerald-600/60 hover:bg-emerald-400"
-                  : t.itemCount > 0
+                  : tab.itemCount > 0
                   ? "w-1.5 h-1.5 bg-slate-500 hover:bg-slate-300"
                   : "w-1.5 h-1.5 bg-[var(--bd-base)] hover:bg-slate-500"
               }`}
@@ -210,7 +213,7 @@ function BookNav({
         </div>
 
         <span className="text-slate-700 text-[10px] leading-none select-none">
-          {activeIdx + 1} / {tabs.length} · ← → to navigate · Ctrl+N new
+          {t("cart.orderNav", { current: activeIdx + 1, total: tabs.length })}
         </span>
       </div>
 
@@ -219,7 +222,7 @@ function BookNav({
           <button
             onClick={() => onRemove(active.id)}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-700 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-            title="Close this order"
+            title={t("cart.closeOrder")}
           >
             <X size={13} />
           </button>
@@ -227,7 +230,7 @@ function BookNav({
         <button
           onClick={onAdd}
           className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-500 hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 transition-colors cursor-pointer"
-          title="New order (Ctrl+N)"
+          title={t("cart.newOrder")}
         >
           <PlusCircle size={17} />
         </button>
@@ -248,19 +251,18 @@ function BookNav({
 // ── Main CartPanel ────────────────────────────────────────────────────────────
 
 export default function CartPanel({ user, sessionId, onSaleComplete }: Props) {
+  const { t } = useTranslation();
   const { fmt, fmtAlt, showAlt } = useCurrency();
   const {
     items, changeQty, setQty, removeFromCart, clearCart, subtotal, discount, tva,
     tabs, activeTabId, addTab, removeTab, switchTab,
   } = useCart();
 
-  // Per-tab receipt state
-  const [receipts,  setReceipts]  = useState<Record<number, ReceiptData>>({});
+  const [receipts,     setReceipts]     = useState<Record<number, ReceiptData>>({});
   const [showCheckout, setShowCheckout] = useState(false);
 
   const receipt = receipts[activeTabId];
 
-  // Store info for printing
   const [storeInfo, setStoreInfo] = useState({ name: "", address: "", phone: "", tagline: "", logo: "" });
   useEffect(() => {
     api.getSettings().then(settings => {
@@ -272,17 +274,15 @@ export default function CartPanel({ user, sessionId, onSaleComplete }: Props) {
   const total    = subtotal - discount + tva;
   const canStart = items.length > 0 && sessionId !== null;
 
-  // Enrich tabs with confirmed flag for BookNav
   const bookTabs = useMemo(
-    () => tabs.map(t => ({ ...t, confirmed: !!receipts[t.id] })),
+    () => tabs.map(tab => ({ ...tab, confirmed: !!receipts[tab.id] })),
     [tabs, receipts],
   );
-  const activeIdx = bookTabs.findIndex(t => t.id === activeTabId);
+  const activeIdx = bookTabs.findIndex(tab => tab.id === activeTabId);
 
   const goPrev = () => { if (activeIdx > 0) switchTab(bookTabs[activeIdx - 1].id); };
   const goNext = () => { if (activeIdx < bookTabs.length - 1) switchTab(bookTabs[activeIdx + 1].id); };
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const el = document.activeElement;
@@ -296,7 +296,6 @@ export default function CartPanel({ user, sessionId, onSaleComplete }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx, bookTabs.length]);
 
-  // Called by CheckoutModal on success — take snapshot, store receipt, clear cart
   const handleSaleComplete = (data: SaleCompleteData) => {
     const snapshot = [...items];
     clearCart();
@@ -323,10 +322,17 @@ export default function CartPanel({ user, sessionId, onSaleComplete }: Props) {
     removeTab(tabId);
   };
 
+  const checkoutLabel = !sessionId
+    ? t("cart.checkoutNoSession")
+    : items.length === 0
+    ? t("cart.checkoutEmpty")
+    : t("cart.checkout", { amount: fmt(total) });
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="w-[400px] flex-shrink-0 flex flex-col border-l border-[var(--bd-faint)] bg-[var(--bg-panel)]">
+      {/* border-s = inline-start: left in LTR (cart on right), right in RTL (cart on left after flex-row-reverse) */}
+      <div className="w-[400px] flex-shrink-0 flex flex-col border-s border-[var(--bd-faint)] bg-[var(--bg-panel)]">
 
         <BookNav
           tabs={bookTabs}
@@ -358,12 +364,14 @@ export default function CartPanel({ user, sessionId, onSaleComplete }: Props) {
               <div className="flex items-center gap-2">
                 <ShoppingBag size={14} className={items.length ? "text-[#14B8A6]" : "text-slate-700"} />
                 <span className="text-slate-500 text-xs">
-                  {items.length === 0 ? "Empty cart" : `${items.reduce((s, i) => s + i.quantity, 0)} items`}
+                  {items.length === 0
+                    ? t("cart.empty")
+                    : t("cart.items", { count: items.reduce((s, i) => s + i.quantity, 0) })}
                 </span>
               </div>
               {items.length > 0 && (
                 <button onClick={clearCart} className="text-slate-600 hover:text-red-400 text-xs transition-colors cursor-pointer">
-                  Clear
+                  {t("cart.clear")}
                 </button>
               )}
             </div>
@@ -373,7 +381,7 @@ export default function CartPanel({ user, sessionId, onSaleComplete }: Props) {
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-4">
                   <ShoppingBag size={44} strokeWidth={1} className="text-slate-800" />
-                  <p className="text-sm text-slate-600">Scan or tap a product to add it</p>
+                  <p className="text-sm text-slate-600">{t("cart.emptyHint")}</p>
                 </div>
               ) : (
                 items.map((item) => (
@@ -417,7 +425,7 @@ export default function CartPanel({ user, sessionId, onSaleComplete }: Props) {
                           <Plus size={12} />
                         </button>
                       </div>
-                      <div className="flex-1 text-right text-[var(--tx-base)] font-bold text-sm tabular-nums">
+                      <div className="flex-1 text-end text-[var(--tx-base)] font-bold text-sm tabular-nums">
                         {fmt(item.unit_price * item.quantity)}
                       </div>
                     </div>
@@ -428,26 +436,24 @@ export default function CartPanel({ user, sessionId, onSaleComplete }: Props) {
 
             {/* ── Footer ── */}
             <div className="border-t border-[var(--bd-faint)] p-5 space-y-4">
-
-              {/* Totals */}
               {items.length > 0 && (
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between text-slate-500">
-                    <span>Subtotal</span><span className="tabular-nums">{fmt(subtotal)}</span>
+                    <span>{t("cart.subtotal")}</span><span className="tabular-nums">{fmt(subtotal)}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-400">
-                      <span>Discount</span><span className="tabular-nums">−{fmt(discount)}</span>
+                      <span>{t("cart.discount")}</span><span className="tabular-nums">−{fmt(discount)}</span>
                     </div>
                   )}
                   {tva > 0 && (
                     <div className="flex justify-between text-slate-500">
-                      <span>TVA</span><span className="tabular-nums">{fmt(tva)}</span>
+                      <span>{t("cart.tva")}</span><span className="tabular-nums">{fmt(tva)}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-baseline pt-2 border-t border-[var(--bd-base)]">
-                    <span className="text-[var(--tx-base)] font-bold">Total</span>
-                    <div className="text-right">
+                    <span className="text-[var(--tx-base)] font-bold">{t("cart.total")}</span>
+                    <div className="text-end">
                       <div className="text-[#14B8A6] font-bold text-2xl tabular-nums">{fmt(total)}</div>
                       {showAlt && <div className="text-slate-500 text-xs tabular-nums">{fmtAlt(total)}</div>}
                     </div>
@@ -455,17 +461,12 @@ export default function CartPanel({ user, sessionId, onSaleComplete }: Props) {
                 </div>
               )}
 
-              {/* Checkout button */}
               <button
                 onClick={() => setShowCheckout(true)}
                 disabled={!canStart}
                 className="w-full py-4 rounded-xl font-bold text-[15px] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 shadow-[#14B8A6]/25"
               >
-                {!sessionId
-                  ? "Open a session to sell"
-                  : items.length === 0
-                  ? "Add items to charge"
-                  : `Checkout — ${fmt(total)}`}
+                {checkoutLabel}
               </button>
             </div>
           </>

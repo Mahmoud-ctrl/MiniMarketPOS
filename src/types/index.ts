@@ -44,6 +44,8 @@ export interface Product {
   expiry_date: string | null;
   is_active: boolean;
   is_frozen: boolean;
+  is_perishable: boolean;
+  default_shelf_life_days: number | null;
 }
 
 // Matches v_product_stock view — note product_id (not id) and extra stock fields
@@ -70,8 +72,25 @@ export interface ProductStock {
   expiry_date: string | null;
   is_active: boolean;
   is_frozen: boolean;
+  is_perishable: boolean;
+  default_shelf_life_days: number | null;
   stock_qty: number;
   low_stock_flag: boolean;
+}
+
+// Matches v_perishable_alerts view
+export interface PerishableAlert {
+  product_id: number;
+  name: string;
+  unit: string;
+  category_name: string | null;
+  stock_qty: number;
+  sell_price_retail: number;
+  cost_price: number;
+  default_shelf_life_days: number | null;
+  last_received_at: string | null;
+  estimated_expiry: string | null;
+  days_until_expiry: number | null;
 }
 
 export type PriceTier = "retail" | "wholesale" | "special";
@@ -207,6 +226,28 @@ export interface Setting {
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────────
+
+export interface WasteSummary {
+  total_waste_value:  number;
+  total_waste_events: number;
+  total_waste_qty:    number;
+}
+
+export interface TopWasterRow {
+  product_id:   number;
+  product_name: string;
+  unit:         string;
+  waste_qty:    number;
+  waste_value:  number;
+  waste_events: number;
+}
+
+export interface DailyWasteRow {
+  date:         string;
+  waste_value:  number;
+  waste_qty:    number;
+  waste_events: number;
+}
 
 export interface SalesSummary {
   total_revenue:     number;
