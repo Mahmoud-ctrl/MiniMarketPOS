@@ -1,7 +1,41 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke as tauriInvoke, InvokeArgs } from "@tauri-apps/api/core";
 import { CashierStatsRow, CashSession, Category, Customer, CustomerLedgerEntry, CustomerWithBalance, DailySalesRow, DailyWasteRow, NoSaleEvent, PerishableAlert, PriceHistoryEntry, PriceTier, Product, ProductStock, Promotion, Purchase, PurchaseWithItems, Sale, SaleReturn, SaleReturnItem, SaleWithItems, SalesSummary, Setting, Supplier, TopCustomerRow, TopProductRow, TopWasterRow, User, WasteSummary } from "../types";
 
 interface LoginResult { user: User }
+
+function formatError(err: unknown): Error {
+  const msg = typeof err === "string" ? err : (err as Error)?.message ?? String(err);
+  
+  if (msg.includes("duplicate key value violates unique constraint")) {
+    if (msg.includes("categories_name_key")) return new Error("A category with this name already exists.");
+    if (msg.includes("products_barcode_key")) return new Error("A product with this barcode already exists.");
+    if (msg.includes("products_internal_code_key")) return new Error("A product with this internal code already exists.");
+    if (msg.includes("users_username_key")) return new Error("A user with this username already exists.");
+    if (msg.includes("suppliers_name_key")) return new Error("A supplier with this name already exists.");
+    if (msg.includes("customers_phone_key")) return new Error("A customer with this phone number already exists.");
+    return new Error("This record already exists. Please use a unique value.");
+  }
+  
+  if (msg.includes("violates foreign key constraint")) {
+    if (msg.includes("products_category_id_fkey")) return new Error("Cannot delete this category because it is assigned to one or more products.");
+    if (msg.includes("products_supplier_id_fkey")) return new Error("Cannot delete this supplier because they are assigned to one or more products.");
+    return new Error("This record cannot be deleted because it is in use elsewhere.");
+  }
+
+  if (msg.includes("error returned from database:")) {
+    return new Error("A database error occurred. Please try again.");
+  }
+
+  return new Error(msg);
+}
+
+async function invoke<T>(cmd: string, args?: InvokeArgs): Promise<T> {
+  try {
+    return await tauriInvoke<T>(cmd, args);
+  } catch (err) {
+    throw formatError(err);
+  }
+}
 
 export const api = {
   // ── Auth ──────────────────────────────────────────────────────

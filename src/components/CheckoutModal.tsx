@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowLeftRight, CheckCircle2, Delete, Printer, User, X } from "lucide-react";
 import { api } from "../lib/api";
 import { Customer, Sale } from "../types";
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
+import { useTranslation } from "react-i18next";
 
 type PayMode = "full" | "partial" | "debt" | "split";
 
@@ -30,6 +32,7 @@ const NUMPAD_KEYS = [
 ] as const;
 
 export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleComplete }: Props) {
+  const { t } = useTranslation();
   const { baseCurrency, exchangeRate, symbol, altSymbol, fmt, fmtAlt, fromDb, toDb, inputDecimals } = useCurrency();
   const { items, promoItems, discount, subtotal, tva } = useCart();
 
@@ -260,7 +263,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
         method: mode === "full" || mode === "split" ? "cash" : "credit",
       });
     } catch (e: unknown) {
-      setError((e as { message?: string })?.message ?? "Sale failed. Please try again.");
+      setError((e as { message?: string })?.message ?? t("checkout.errorDefault"));
     } finally {
       setProcessing(false);
     }
@@ -327,7 +330,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
   );
 
   // ── Main checkout screen ────────────────────────────────────────────────────
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm">
       <div
         className="bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
@@ -335,7 +338,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--bd-base)] flex-shrink-0">
-          <h2 className="text-[var(--tx-base)] font-bold text-lg">Checkout</h2>
+          <h2 className="text-[var(--tx-base)] font-bold text-lg">{t("checkout.title")}</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-lg hover:bg-[var(--bg-raised)] text-slate-500 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer"
@@ -350,7 +353,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
           {/* Left: order summary */}
           <div className="w-[360px] flex-shrink-0 border-r border-[var(--bd-base)] flex flex-col">
             <div className="px-5 py-3 border-b border-[var(--bd-faint)] flex-shrink-0">
-              <span className="text-slate-500 text-xs uppercase tracking-widest">Order Summary</span>
+              <span className="text-slate-500 text-xs uppercase tracking-widest">{t("checkout.orderSummary")}</span>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
               {items.map(item => (
@@ -375,26 +378,26 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                     <div className="text-emerald-400 text-sm font-medium leading-snug truncate">{item.product.name}</div>
                     <div className="text-emerald-400/60 text-xs mt-0.5">{item.promo_name} · ×{item.quantity}</div>
                   </div>
-                  <div className="text-emerald-400 text-xs font-bold tabular-nums flex-shrink-0">FREE</div>
+                  <div className="text-emerald-400 text-xs font-bold tabular-nums flex-shrink-0">{t("checkout.free")}</div>
                 </div>
               ))}
             </div>
             <div className="border-t border-[var(--bd-base)] px-5 py-5 space-y-2.5 flex-shrink-0">
               <div className="flex justify-between text-sm text-slate-500">
-                <span>Subtotal</span><span className="tabular-nums">{fmt(subtotal)}</span>
+                <span>{t("checkout.subtotal")}</span><span className="tabular-nums">{fmt(subtotal)}</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-sm text-emerald-400">
-                  <span>Discount</span><span className="tabular-nums">−{fmt(discount)}</span>
+                  <span>{t("checkout.discount")}</span><span className="tabular-nums">−{fmt(discount)}</span>
                 </div>
               )}
               {tva > 0 && (
                 <div className="flex justify-between text-sm text-slate-500">
-                  <span>TVA</span><span className="tabular-nums">{fmt(tva)}</span>
+                  <span>{t("checkout.tva")}</span><span className="tabular-nums">{fmt(tva)}</span>
                 </div>
               )}
               <div className="flex justify-between items-baseline pt-3 border-t border-[var(--bd-base)]">
-                <span className="text-[var(--tx-base)] font-bold text-base">Total</span>
+                <span className="text-[var(--tx-base)] font-bold text-base">{t("checkout.total")}</span>
                 <div className="text-right">
                   <div className="text-[#14B8A6] font-bold text-3xl tabular-nums">{fmt(total)}</div>
                   <div className="text-slate-500 text-xs tabular-nums mt-0.5">{fmtAlt(total)}</div>
@@ -418,7 +421,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                       : "bg-[var(--bg-base)] border-[var(--bd-base)] text-slate-400 hover:border-[var(--bd-strong)] hover:text-slate-300"
                   }`}
                 >
-                  {m === "full" ? "Full" : m === "partial" ? "Partial" : "Debt"}
+                  {t(`checkout.modes.${m}`)}
                 </button>
               ))}
               {isUSD && exchangeRate > 0 && (
@@ -437,7 +440,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                       : "bg-[var(--bg-base)] border-[var(--bd-base)] text-slate-400 hover:border-[var(--bd-strong)] hover:text-slate-300"
                   }`}
                 >
-                  Split
+                  {t("checkout.modes.split")}
                 </button>
               )}
             </div>
@@ -446,8 +449,8 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
             {(mode === "partial" || mode === "debt") && (
               <div ref={suggRef} className="relative">
                 <div className="text-xs text-slate-500 mb-2 flex items-center gap-1.5">
-                  <span className="uppercase tracking-widest">Customer</span>
-                  <span className="text-red-400 text-[10px]">required</span>
+                  <span className="uppercase tracking-widest">{t("checkout.customer")}</span>
+                  <span className="text-red-400 text-[10px]">{t("checkout.required")}</span>
                 </div>
                 {customer ? (
                   <div className="flex items-center gap-3 px-4 py-3 bg-[var(--bg-card)] border border-[#14B8A6]/40 rounded-xl">
@@ -466,7 +469,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                   <>
                     <input
                       type="text"
-                      placeholder="Search by name or phone…"
+                      placeholder={t("checkout.searchCustomer")}
                       value={query}
                       onChange={e => setQuery(e.target.value)}
                       onFocus={() => query.length > 0 && setShowSugg(true)}
@@ -485,7 +488,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                         ))}
                         {query.trim().length > 0 && (
                           <button onMouseDown={createAndSelect} className="w-full text-left px-4 py-3 border-t border-[var(--bd-faint)] hover:bg-[var(--bg-raised)] transition-colors text-[#14B8A6] text-sm cursor-pointer">
-                            + Create new: &ldquo;{query.trim()}&rdquo;
+                            {t("checkout.createNew")} &ldquo;{query.trim()}&rdquo;
                           </button>
                         )}
                       </div>
@@ -503,7 +506,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                   <div className="bg-[var(--bg-deep)] border border-[var(--bd-base)] rounded-xl px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-slate-500 text-xs uppercase tracking-wider">
-                        {mode === "partial" ? "Paying now" : "Tendered"}
+                        {mode === "partial" ? t("checkout.payingNow") : t("checkout.tendered")}
                       </span>
                       <CurrencyToggle />
                     </div>
@@ -524,7 +527,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                     onClick={setExact}
                     className="w-full py-2.5 rounded-xl bg-[var(--bg-raised)] border border-[var(--bd-base)] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] text-sm font-semibold transition-colors cursor-pointer"
                   >
-                    Exact — {fmt(total)}{useAlt && <span className="text-slate-600 font-normal"> ({fmtAlt(total)})</span>}
+                    {t("checkout.exact")} — {fmt(total)}{useAlt && <span className="text-slate-600 font-normal"> ({fmtAlt(total)})</span>}
                   </button>
 
                   <div className="grid grid-cols-3 gap-2">
@@ -566,25 +569,25 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                 <div className="w-44 flex flex-col justify-end gap-3">
                   {mode === "full" && tenderedCents > 0 && tenderedCents >= total && (
                     <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl p-4 text-center">
-                      <div className="text-emerald-400 text-[11px] uppercase tracking-wider mb-1.5">Change</div>
+                      <div className="text-emerald-400 text-[11px] uppercase tracking-wider mb-1.5">{t("checkout.change")}</div>
                       <div className="text-emerald-400 font-bold text-2xl tabular-nums">{activeFmt(change)}</div>
                     </div>
                   )}
                   {mode === "full" && tenderedCents > 0 && tenderedCents < total && (
                     <div className="bg-red-500/10 border border-red-500/25 rounded-xl p-4 text-center">
-                      <div className="text-red-400 text-[11px] uppercase tracking-wider mb-1.5">Short by</div>
+                      <div className="text-red-400 text-[11px] uppercase tracking-wider mb-1.5">{t("checkout.shortBy")}</div>
                       <div className="text-red-400 font-bold text-2xl tabular-nums">{activeFmt(total - tenderedCents)}</div>
                     </div>
                   )}
                   {mode === "partial" && tenderedCents > 0 && debtAmount > 0 && (
                     <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl p-4 text-center">
-                      <div className="text-orange-400 text-[11px] uppercase tracking-wider mb-1.5">Remaining Debt</div>
+                      <div className="text-orange-400 text-[11px] uppercase tracking-wider mb-1.5">{t("checkout.remainingDebt")}</div>
                       <div className="text-orange-400 font-bold text-2xl tabular-nums">{activeFmt(debtAmount)}</div>
                     </div>
                   )}
                   {mode === "partial" && tenderedCents >= total && tenderedCents > 0 && (
                     <div className="bg-red-500/10 border border-red-500/25 rounded-xl p-4 text-center">
-                      <div className="text-red-400 text-xs text-center leading-snug">Amount ≥ total.<br />Use Full Payment.</div>
+                      <div className="text-red-400 text-xs text-center leading-snug whitespace-pre-wrap">{t("checkout.amountGreaterEqTotal")}</div>
                     </div>
                   )}
                 </div>
@@ -631,8 +634,8 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                     className="w-full py-2.5 rounded-xl bg-[var(--bg-raised)] border border-[var(--bd-base)] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] text-sm font-semibold transition-colors cursor-pointer"
                   >
                     {splitActive === "primary"
-                      ? `Fill remaining — ${fmt(Math.max(0, total - splitSecCents))}`
-                      : `Fill remaining — ${fmtAlt(Math.max(0, total - splitPrimaryCents))}`}
+                      ? `${t("checkout.fillRemaining")} — ${fmt(Math.max(0, total - splitSecCents))}`
+                      : `${t("checkout.fillRemaining")} — ${fmtAlt(Math.max(0, total - splitPrimaryCents))}`}
                   </button>
 
                   <div className="grid grid-cols-3 gap-2">
@@ -672,7 +675,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                 <div className="w-44 flex flex-col justify-end gap-3">
                   {(splitPrimary || splitSecondary) && (
                     <div className="bg-[var(--bg-deep)] border border-[var(--bd-base)] rounded-xl p-3.5">
-                      <div className="text-slate-500 text-[10px] uppercase tracking-wider mb-2">Paid so far</div>
+                      <div className="text-slate-500 text-[10px] uppercase tracking-wider mb-2">{t("checkout.paidSoFar")}</div>
                       {splitPrimary && <div className="text-[var(--tx-base)] text-sm font-semibold tabular-nums">{symbol} {splitPrimary}</div>}
                       {splitSecondary && <div className="text-[var(--tx-base)] text-sm font-semibold tabular-nums">{altSymbol} {splitSecondary}</div>}
                       {splitPrimary && splitSecondary && (
@@ -682,13 +685,13 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                   )}
                   {splitChange > 0 && (
                     <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl p-4 text-center">
-                      <div className="text-emerald-400 text-[11px] uppercase tracking-wider mb-1.5">Change</div>
+                      <div className="text-emerald-400 text-[11px] uppercase tracking-wider mb-1.5">{t("checkout.change")}</div>
                       <div className="text-emerald-400 font-bold text-2xl tabular-nums">{fmt(splitChange)}</div>
                     </div>
                   )}
                   {splitTotal > 0 && splitTotal < total && (
                     <div className="bg-red-500/10 border border-red-500/25 rounded-xl p-4 text-center">
-                      <div className="text-red-400 text-[11px] uppercase tracking-wider mb-1.5">Short by</div>
+                      <div className="text-red-400 text-[11px] uppercase tracking-wider mb-1.5">{t("checkout.shortBy")}</div>
                       <div className="text-red-400 font-bold text-2xl tabular-nums">{fmt(total - splitTotal)}</div>
                       <div className="text-red-400/70 text-xs tabular-nums mt-1">{fmtAlt(total - splitTotal)}</div>
                     </div>
@@ -700,7 +703,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
             {/* Debt info card */}
             {mode === "debt" && (
               <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl p-6 text-center">
-                <div className="text-orange-400 text-sm mb-3">Full amount will be recorded as customer debt</div>
+                <div className="text-orange-400 text-sm mb-3">{t("checkout.debtNotice")}</div>
                 <div className="text-orange-400 font-bold text-4xl tabular-nums mb-1">{fmt(total)}</div>
                 <div className="text-orange-400/60 text-sm tabular-nums">{fmtAlt(total)}</div>
               </div>
@@ -721,7 +724,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                 ) : (
                   <Printer size={16} />
                 )}
-                Print
+                {t("checkout.print")}
                 <kbd className="text-[9px] font-mono px-1 py-0.5 rounded border border-[var(--bd-base)] bg-[var(--bg-base)] text-slate-500 font-normal">F6</kbd>
               </button>
               <button
@@ -734,16 +737,16 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                 ) : (
                   <>
                     <CheckCircle2 size={18} />
-                    {mode === "full" && `Charge ${fmt(total)}`}
+                    {mode === "full" && `${t("checkout.charge")} ${fmt(total)}`}
                     {mode === "split" && (splitTotal >= total
-                      ? `Charge ${fmt(total)}`
+                      ? `${t("checkout.charge")} ${fmt(total)}`
                       : splitTotal > 0
-                      ? `${fmt(total - splitTotal)} more needed`
-                      : "Enter split amounts")}
+                      ? `${fmt(total - splitTotal)} ${t("checkout.moreNeeded")}`
+                      : t("checkout.enterSplit"))}
                     {mode === "partial" && tendered
-                      ? `Pay ${fmt(tenderedCents)} · Debt ${fmt(debtAmount)}`
-                      : mode === "partial" ? "Enter amount paid" : ""}
-                    {mode === "debt" && `Record ${fmt(total)} as Debt`}
+                      ? `${t("checkout.pay")} ${fmt(tenderedCents)} · ${t("checkout.debt")} ${fmt(debtAmount)}`
+                      : mode === "partial" ? t("checkout.enterAmount") : ""}
+                    {mode === "debt" && `${t("checkout.record")} ${fmt(total)} ${t("checkout.asDebt")}`}
                     <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-slate-900/20 bg-slate-900/15 text-slate-900/60 font-normal">↵</kbd>
                   </>
                 )}

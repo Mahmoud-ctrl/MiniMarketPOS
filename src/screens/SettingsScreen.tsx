@@ -863,28 +863,28 @@ export default function SettingsScreen({ user }: Props) {
   const [tab, setTab] = useState<Tab>("store");
 
   return (
-    <div className="flex-1 flex overflow-hidden">
+    <div className="flex-1 flex overflow-hidden bg-[var(--bg-deep)]">
       {/* Sidebar */}
-      <div className="w-48 flex-shrink-0 border-e border-[var(--bd-base)] bg-[var(--bg-base)] py-4 px-2">
-        <p className="text-xs text-slate-600 font-medium uppercase tracking-wider px-3 mb-3">{t("nav.settings")}</p>
+      <div className="w-64 flex-shrink-0 border-e border-[var(--bd-faint)] bg-[var(--bg-deep)]/80 backdrop-blur-xl py-6 px-4">
+        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest px-3 mb-4">{t("nav.settings")}</p>
         {TABS.map(({ id, labelKey, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer mb-0.5 ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold uppercase tracking-wider transition-all cursor-pointer mb-1 ${
               tab === id
-                ? "bg-[#14B8A6]/10 text-[#14B8A6] border border-[#14B8A6]/20"
-                : "text-slate-500 hover:text-slate-300 hover:bg-[var(--bg-card)]"
+                ? "bg-[#14B8A6] text-slate-900 shadow-[0_4px_14px_0_rgba(20,184,166,0.39)]"
+                : "text-slate-500 hover:text-[var(--tx-base)] hover:bg-[var(--bg-panel)]"
             }`}
           >
-            <Icon size={15} />
+            <Icon size={16} className={tab === id ? "text-slate-900" : "text-slate-400"} />
             {t(labelKey)}
           </button>
         ))}
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-8 lg:p-12">
         {tab === "store"      && <StoreConfigTab />}
         {tab === "users"      && <UsersTab currentUser={user} />}
         {tab === "categories" && <CategoriesTab />}

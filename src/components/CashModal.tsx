@@ -1,5 +1,6 @@
 import { Banknote, X } from "lucide-react";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useCurrency } from "../context/CurrencyContext";
 
 interface Props {
@@ -34,7 +35,7 @@ export default function CashModal({ total, onConfirm, onCancel }: Props) {
   const isPending = change < 0;
   const hasInput  = combined > 0;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4" onClick={onCancel}>
       <div
         className="bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-2xl w-full max-w-sm shadow-2xl"
@@ -140,6 +141,7 @@ export default function CashModal({ total, onConfirm, onCancel }: Props) {
 
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

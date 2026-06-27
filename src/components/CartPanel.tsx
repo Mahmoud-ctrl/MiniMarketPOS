@@ -517,7 +517,7 @@ export default function CartPanel({ user, sessionId, onSaleComplete }: Props) {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="w-[400px] flex-shrink-0 flex flex-col border-s border-[var(--bd-faint)] bg-[var(--bg-panel)]">
+      <div className="w-[400px] h-full flex-shrink-0 flex flex-col border-s border-[var(--bd-faint)] bg-[var(--bg-panel)]">
 
         <BookNav
           tabs={bookTabs}

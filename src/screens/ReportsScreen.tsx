@@ -10,6 +10,8 @@ import {
   SalesSummary, TopCustomerRow, TopProductRow, TopWasterRow, User, WasteSummary,
 } from "../types";
 import { useCurrency } from "../context/CurrencyContext";
+import { PageHeader } from "../components/PageHeader";
+import { PillGroup } from "../components/PillGroup";
 
 interface Props { user: User }
 
@@ -100,12 +102,12 @@ function StatCard({ label, value, icon: Icon, color, bg }: {
   icon: React.ElementType; color: string; bg: string;
 }) {
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-5 py-4">
-      <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center mb-3`}>
-        <Icon size={15} className={color} />
+    <div className="bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-3xl p-6 shadow-sm">
+      <div className={`w-10 h-10 rounded-2xl ${bg} flex items-center justify-center mb-4`}>
+        <Icon size={18} className={color} />
       </div>
-      <div className={`font-bold text-2xl tabular-nums ${color}`}>{value}</div>
-      <div className="text-slate-500 text-xs mt-1">{label}</div>
+      <div className={`font-black text-3xl tabular-nums tracking-tight ${color}`}>{value}</div>
+      <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-2">{label}</div>
     </div>
   );
 }
@@ -143,9 +145,9 @@ function SalesTab({ summary, daily, products, customers, cashiers, loading, fmt 
 
       {/* Payment split + daily chart */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-5 py-4">
-          <div className="text-slate-500 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Banknote size={13} /> {t("reports.paymentSplit")}
+        <div className="bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-3xl p-6 shadow-sm">
+          <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Banknote size={15} /> {t("reports.paymentSplit")}
           </div>
           <div className="space-y-3">
             <div>
@@ -173,9 +175,9 @@ function SalesTab({ summary, daily, products, customers, cashiers, loading, fmt 
           </div>
         </div>
 
-        <div className="col-span-2 bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-5 py-4">
-          <div className="text-slate-500 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
-            <BarChart3 size={13} /> {t("reports.dailySales")}
+        <div className="col-span-2 bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-3xl p-6 shadow-sm">
+          <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+            <BarChart3 size={15} /> {t("reports.dailySales")}
           </div>
           {loading
             ? <div className="flex items-center justify-center h-36 text-slate-600 text-sm">{t("common.loading")}</div>
@@ -185,9 +187,9 @@ function SalesTab({ summary, daily, products, customers, cashiers, loading, fmt 
 
       {/* Products + Customers */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl p-5">
-          <div className="flex items-center gap-2 text-slate-500 text-xs uppercase tracking-wider mb-4">
-            <Package size={13} /> {t("reports.topProducts")}
+        <div className="bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest mb-5">
+            <Package size={15} /> {t("reports.topProducts")}
           </div>
           {loading ? (
             <div className="text-slate-600 text-sm text-center py-6">{t("common.loading")}</div>
@@ -213,9 +215,9 @@ function SalesTab({ summary, daily, products, customers, cashiers, loading, fmt 
           )}
         </div>
 
-        <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl p-5">
-          <div className="flex items-center gap-2 text-slate-500 text-xs uppercase tracking-wider mb-4">
-            <Users size={13} /> {t("reports.topCustomers")}
+        <div className="bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest mb-5">
+            <Users size={15} /> {t("reports.topCustomers")}
           </div>
           {loading ? (
             <div className="text-slate-600 text-sm text-center py-6">{t("common.loading")}</div>
@@ -245,9 +247,9 @@ function SalesTab({ summary, daily, products, customers, cashiers, loading, fmt 
 
       {/* Cashier performance */}
       {cashiers.length > 0 && (
-        <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl p-5">
-          <div className="flex items-center gap-2 text-slate-500 text-xs uppercase tracking-wider mb-4">
-            <CreditCard size={13} /> {t("reports.cashierPerf")}
+        <div className="bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest mb-5">
+            <CreditCard size={15} /> {t("reports.cashierPerf")}
           </div>
           <table className="w-full">
             <thead>
@@ -351,10 +353,10 @@ function WasteTab({ summary, daily, wasters, loading, fmt }: {
       {(hasData || loading) && (
         <>
           {/* Daily waste chart */}
-          <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl px-5 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-slate-500 text-xs uppercase tracking-wider flex items-center gap-2">
-                <BarChart3 size={13} /> {t("reports.dailyWaste")}
+          <div className="bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-slate-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                <BarChart3 size={15} /> {t("reports.dailyWaste")}
               </div>
               <span className="text-slate-600 text-xs">cost × qty wasted per day</span>
             </div>
@@ -364,9 +366,9 @@ function WasteTab({ summary, daily, wasters, loading, fmt }: {
           </div>
 
           {/* Top wasters table */}
-          <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl p-5">
-            <div className="flex items-center gap-2 text-slate-500 text-xs uppercase tracking-wider mb-5">
-              <Flame size={13} className="text-orange-400" /> {t("reports.topWasters")}
+          <div className="bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest mb-6">
+              <Flame size={15} className="text-orange-400" /> {t("reports.topWasters")}
             </div>
             {loading ? (
               <div className="text-slate-600 text-sm text-center py-6">{t("common.loading")}</div>
@@ -458,58 +460,41 @@ export default function ReportsScreen({ user: _user }: Props) {
   useEffect(() => { load(period); }, [period, load]);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-root)]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-deep)]">
 
       {/* Header */}
-      <div className="flex items-center gap-4 px-6 py-4 border-b border-[var(--bd-faint)] bg-[var(--bg-panel)] flex-shrink-0">
-
-        {/* View toggle */}
-        <div className="flex items-center gap-1 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl p-1">
+      <PageHeader
+        icon={<BarChart3 size={22} className="text-[#14B8A6]" />}
+        title={t("reports.title", "Reports")}
+        subtitle={PERIODS.find(p => p.id === period)?.label}
+        actions={
           <button
-            onClick={() => setView("sales")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${view === "sales" ? "bg-[#14B8A6] text-slate-900" : "text-slate-500 hover:text-[var(--tx-base)]"}`}
+            onClick={() => load(period)}
+            disabled={loading}
+            className="w-12 h-12 rounded-2xl bg-[var(--bg-panel)] border border-[var(--bd-base)] hover:border-[var(--tx-base)] text-slate-500 hover:text-[var(--tx-base)] flex items-center justify-center transition-all cursor-pointer disabled:opacity-40 shadow-sm active:scale-95"
           >
-            <TrendingUp size={12} /> {t("reports.sales")}
+            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
           </button>
-          <button
-            onClick={() => setView("waste")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${view === "waste" ? "bg-orange-500 text-white" : "text-slate-500 hover:text-[var(--tx-base)]"}`}
-          >
-            <Flame size={12} /> {t("reports.waste")}
-          </button>
-        </div>
-
-        <div className="text-slate-600 text-xs">
-          {PERIODS.find(p => p.id === period)?.label}
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Period tabs */}
-        <div className="flex items-center gap-1 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl p-1">
-          {PERIODS.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setPeriod(p.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                period === p.id
-                  ? "bg-[#14B8A6] text-slate-900"
-                  : "text-slate-500 hover:text-[var(--tx-base)]"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => load(period)}
-          disabled={loading}
-          className="w-8 h-8 rounded-lg bg-[var(--bg-base)] border border-[var(--bd-base)] hover:border-[#14B8A6]/50 text-slate-500 hover:text-[#14B8A6] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-        </button>
-      </div>
+        }
+        filtersBlock={
+          <>
+            <PillGroup
+              options={[
+                { id: "sales", label: <div className="flex items-center gap-1.5"><TrendingUp size={14} /> {t("reports.sales")}</div> },
+                { id: "waste", label: <div className="flex items-center gap-1.5"><Flame size={14} /> {t("reports.waste")}</div> },
+              ] as any}
+              value={view}
+              onChange={setView as any}
+            />
+            <div className="w-px h-5 bg-[var(--bd-base)]" />
+            <PillGroup
+              options={PERIODS}
+              value={period}
+              onChange={setPeriod as any}
+            />
+          </>
+        }
+      />
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5">

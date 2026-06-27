@@ -10,6 +10,8 @@ import { api } from "../lib/api";
 import { Sale, SaleReturnItem, SaleWithItems, User } from "../types";
 import { useCurrency } from "../context/CurrencyContext";
 import Modal from "../components/Modal";
+import { PageHeader } from "../components/PageHeader";
+import { PillGroup } from "../components/PillGroup";
 import { buildReceiptHtml, doPrint } from "../lib/receipt";
 
 interface Props { user: User }
@@ -441,32 +443,6 @@ function TransactionDetail({
   );
 }
 
-// ── Pill group helper ─────────────────────────────────────────────────────────
-function PillGroup<T extends string>({
-  options, value, onChange,
-}: {
-  options: { id: T; label: string }[];
-  value:   T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="flex bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl p-1 gap-0.5">
-      {options.map(o => (
-        <button
-          key={o.id}
-          onClick={() => onChange(o.id)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-            value === o.id
-              ? "bg-[#14B8A6] text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-300"
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 // ── Transaction card ───────────────────────────────────────────────────────────
 function TransactionCard({
@@ -510,52 +486,54 @@ function TransactionCard({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.985 }}
       onClick={() => onSelect(sale.id)}
-      className="relative flex flex-col gap-3 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-2xl overflow-hidden hover:border-[var(--bd-strong)] hover:bg-[var(--bg-card)]/30 transition-colors cursor-pointer text-start group p-4"
+      className="group relative h-52 text-left rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between overflow-hidden bg-[var(--bg-panel)] border border-[var(--bd-base)] hover:border-[var(--tx-base)] hover:shadow-xl cursor-pointer"
     >
       {/* Status accent stripe (top edge) */}
-      <div className={`absolute top-0 inset-x-0 h-1 ${accentColor}`} />
+      <div className={`absolute top-0 inset-x-6 h-[2px] opacity-20 transition-opacity group-hover:opacity-100 ${accentColor}`} />
 
-      {/* Top row: icon + badge */}
-      <div className="flex items-center justify-between">
-        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 transition-colors ${
-          isVoid ? "bg-[var(--bg-card)] border-[var(--bd-base)]" : "bg-[var(--bg-card)] border-[var(--bd-base)] group-hover:border-[var(--bd-strong)]"
-        }`}>
-          <Icon size={15} className={isVoid ? "text-slate-700" : "text-slate-400"} />
-        </div>
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${badgeStyle}`}>
-          {badgeLabel}
-        </span>
-      </div>
-
-      {/* Sale id + customer */}
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`font-bold text-sm ${isVoid ? "text-slate-600" : "text-[var(--tx-base)]"}`}>
+      {/* Top content */}
+      <div className="flex-1 pr-1">
+        <div className="flex justify-between items-start">
+          <p className="text-lg font-bold leading-tight line-clamp-2 text-[var(--tx-base)] max-w-[75%]">
             #{sale.id}
+          </p>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${badgeStyle}`}>
+            {badgeLabel}
           </span>
-          {sale.customer_name && (
-            <span className="flex items-center gap-1 text-[#14B8A6] text-xs min-w-0 truncate">
-              <UserCircle size={11} className="flex-shrink-0" />
-              <span className="truncate">{sale.customer_name}</span>
+        </div>
+        
+        <div className="flex flex-col mt-2">
+          {sale.customer_name ? (
+            <span className="text-xs font-semibold uppercase tracking-widest text-[#14B8A6] truncate flex items-center gap-1">
+              <UserCircle size={12} className="flex-shrink-0" />
+              {sale.customer_name}
+            </span>
+          ) : (
+            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 truncate">
+              {t("transactions.customer.walkIn", "Walk-in")}
             </span>
           )}
+          <span className="text-xs text-slate-400 mt-1 truncate capitalize flex items-center gap-1.5">
+            <Icon size={12} /> {sale.payment_method} · {new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
         </div>
-        <p className="text-slate-500 text-xs mt-0.5 capitalize truncate">
-          {new Date(sale.created_at).toLocaleString()} · {sale.payment_method}
-        </p>
       </div>
 
-      {/* Amount footer */}
-      <div className="flex items-end justify-between pt-2 mt-auto border-t border-[var(--bd-base)]">
+      {/* Bottom metrics */}
+      <div className="mt-2 flex items-end justify-between z-0">
         <div>
-          <div className={`font-bold text-lg tabular-nums leading-tight ${isVoid ? "text-slate-600 line-through" : "text-[#14B8A6]"}`}>
+          <div className={`text-3xl font-black tabular-nums tracking-tight leading-none ${isVoid ? "text-slate-600 line-through" : "text-[#14B8A6]"}`}>
             {fmt(sale.total_amount)}
           </div>
           {sale.discount > 0 && (
-            <div className="text-emerald-400 text-[11px] tabular-nums">−{fmt(sale.discount)}</div>
+            <div className="text-xs font-bold uppercase tracking-widest mt-1 text-emerald-500">
+              −{fmt(sale.discount)}
+            </div>
           )}
         </div>
-        <ChevronRight size={14} className="text-slate-700 group-hover:text-slate-400 transition-colors flex-shrink-0 mb-0.5" />
+        <div className="w-8 h-8 rounded-full bg-[var(--bg-base)] border border-[var(--bd-base)] flex items-center justify-center transition-colors group-hover:border-[var(--tx-base)]">
+          <ChevronRight size={14} className="text-slate-400 group-hover:text-[var(--tx-base)]" />
+        </div>
       </div>
     </motion.button>
   );
@@ -633,61 +611,55 @@ export default function TransactionsScreen({ user }: Props) {
     <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-deep)]">
 
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div className="px-6 pt-6 pb-4 border-b border-[var(--bd-faint)] space-y-4 bg-[var(--bg-panel)]">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center">
-              <ScrollText size={18} className="text-[#14B8A6]" />
-            </div>
-            <div>
-              <h1 className="text-[var(--tx-base)] font-bold text-lg leading-tight">{t("transactions.title")}</h1>
-              <p className="text-slate-500 text-xs">{t("transactions.subtitle")}</p>
-            </div>
-          </div>
-          {sales.length > 0 && (
+      <PageHeader
+        icon={<ScrollText size={22} className="text-[#14B8A6]" />}
+        title={t("transactions.title")}
+        subtitle={t("transactions.subtitle")}
+        stats={
+          sales.length > 0 ? (
             <div className="text-end">
               <div className="text-[#14B8A6] font-bold text-xl tabular-nums">{fmt(periodTotal)}</div>
               <div className="text-slate-500 text-xs">{sales.filter(s => s.status !== "void").length} {t("transactions.status.completed").toLowerCase()}</div>
             </div>
-          )}
-        </div>
-
-        {/* Barcode search */}
-        <div className="relative max-w-sm">
-          <ScanBarcode size={15} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-          <input
-            ref={barcodeRef}
-            type="text"
-            placeholder={t("transactions.searchPlaceholder")}
-            value={barcode}
-            onChange={e => setBarcode(e.target.value)}
-            className="w-full bg-[var(--bg-base)] border border-[var(--bd-base)] focus:border-[#14B8A6]/60 focus:outline-none rounded-xl ps-10 pe-9 py-2.5 text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
-          />
-          {barcode && (
-            <button
-              onClick={() => setBarcode("")}
-              className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
-            >
-              <X size={13} />
-            </button>
-          )}
-        </div>
-
-        {/* Filter pills */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 text-slate-600">
-            <Calendar size={13} />
+          ) : null
+        }
+        searchBlock={
+          <div className="relative group">
+            <ScanBarcode size={18} className="absolute start-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#14B8A6] transition-colors pointer-events-none" />
+            <input
+              ref={barcodeRef}
+              type="text"
+              placeholder={t("transactions.searchPlaceholder")}
+              value={barcode}
+              onChange={e => setBarcode(e.target.value)}
+              className="w-full bg-[var(--bg-panel)] border border-[var(--bd-base)] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 focus:outline-none rounded-2xl ps-12 pe-10 py-3 text-[var(--tx-base)] text-sm font-medium placeholder-slate-400 shadow-sm transition-all"
+            />
+            {barcode && (
+              <button
+                onClick={() => setBarcode("")}
+                className="absolute end-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[var(--tx-base)] cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            )}
           </div>
-          <PillGroup options={dateOpts}   value={range}   onChange={setRange}   />
-          <div className="w-px h-5 bg-[var(--bd-base)]" />
-          <PillGroup options={statusOpts} value={statusF} onChange={setStatusF} />
-          <div className="w-px h-5 bg-[var(--bd-base)]" />
-          <div className="flex items-center gap-1.5 text-slate-600">
-            <Filter size={13} />
-          </div>
-          <PillGroup options={payOpts}    value={payF}    onChange={setPayF}    />
-        </div>
-      </div>
+        }
+        filtersBlock={
+          <>
+            <div className="flex items-center gap-1.5 text-slate-600">
+              <Calendar size={13} />
+            </div>
+            <PillGroup options={dateOpts}   value={range}   onChange={setRange}   />
+            <div className="w-px h-5 bg-[var(--bd-base)]" />
+            <PillGroup options={statusOpts} value={statusF} onChange={setStatusF} />
+            <div className="w-px h-5 bg-[var(--bd-base)]" />
+            <div className="flex items-center gap-1.5 text-slate-600">
+              <Filter size={13} />
+            </div>
+            <PillGroup options={payOpts}    value={payF}    onChange={setPayF}    />
+          </>
+        }
+      />
 
       {/* ── Grid ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 py-3">

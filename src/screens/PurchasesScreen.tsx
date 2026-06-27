@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CheckCircle, ChevronDown, Package, Plus,
-  RefreshCw, Search, Truck, X, XCircle,
+  CheckCircle, Package, Plus,
+  RefreshCw, Search, Truck, X, XCircle, Calendar, Filter
 } from "lucide-react";
 import { api } from "../lib/api";
 import { Category, Product, Purchase, PurchaseItem, PurchaseWithItems, Supplier, User } from "../types";
 import Modal from "../components/Modal";
 import CategorySelect from "../components/CategorySelect";
 import { useCurrency } from "../context/CurrencyContext";
+import { PageHeader } from "../components/PageHeader";
+import { PillGroup } from "../components/PillGroup";
 
 interface Props { user: User }
 
@@ -547,7 +549,6 @@ export default function PurchasesScreen({ user }: Props) {
   const { fmt } = useCurrency();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "received" | "cancelled">("all");
   const [search, setSearch]     = useState("");
   const [loading, setLoading]   = useState(false);
   const [creating, setCreating] = useState(false);
@@ -555,13 +556,13 @@ export default function PurchasesScreen({ user }: Props) {
   const [viewing, setViewing]   = useState<Purchase | null>(null);
   const [voiding, setVoiding]   = useState<Purchase | null>(null);
   const [cancelError, setCancelError] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "received" | "cancelled">("all");
+  const [range, setRange] = useState<"today" | "week" | "month" | "all">("all");
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = await api.getPurchases({
-        status: statusFilter === "all" ? null : statusFilter,
-      });
+      const data = await api.getPurchases({});
       setPurchases(data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -569,9 +570,8 @@ export default function PurchasesScreen({ user }: Props) {
 
   useEffect(() => {
     api.getSuppliers().then(setSuppliers).catch(console.error);
+    load();
   }, []);
-
-  useEffect(() => { load(); }, [statusFilter]);
 
   const handleSaved = () => {
     setCreating(false);
@@ -590,150 +590,169 @@ export default function PurchasesScreen({ user }: Props) {
     }
   };
 
-  const filtered = search.trim()
-    ? purchases.filter(p =>
-        (p.supplier_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-        (p.reference_no  ?? "").toLowerCase().includes(search.toLowerCase()) ||
-        String(p.id).includes(search))
-    : purchases;
+  const filtered = useMemo(() => {
+    const now = new Date();
+    return purchases.filter(p => {
+      const matchS = filterStatus === "all" || p.status === filterStatus;
+      const term = search.toLowerCase();
+      const matchQ = (p.supplier_name ?? "").toLowerCase().includes(term) ||
+                     (p.reference_no ?? "").toLowerCase().includes(term) ||
+                     String(p.id).includes(term);
+      let matchD = true;
+      if (range !== "all") {
+        const pd = new Date(p.created_at);
+        const diff = now.getTime() - pd.getTime();
+        const days = diff / (1000 * 3600 * 24);
+        if (range === "today") matchD = days <= 1;
+        else if (range === "week") matchD = days <= 7;
+        else if (range === "month") matchD = days <= 30;
+      }
+      return matchS && matchQ && matchD;
+    });
+  }, [purchases, filterStatus, search, range]);
 
-  const counts = {
-    pending:   purchases.filter(p => p.status === "pending").length,
-    received:  purchases.filter(p => p.status === "received").length,
-    cancelled: purchases.filter(p => p.status === "cancelled").length,
-  };
+  const dateOpts = [
+    { id: "today", label: t("transactions.dateRange.today", "Today") },
+    { id: "week", label: t("transactions.dateRange.week", "This Week") },
+    { id: "month", label: t("transactions.dateRange.month", "This Month") },
+    { id: "all", label: t("transactions.dateRange.all", "All Time") },
+  ] as any;
 
-  const statusKeys: { id: "all" | "pending" | "received" | "cancelled"; labelKey: string }[] = [
-    { id: "all",       labelKey: "purchases.status.all"       },
-    { id: "pending",   labelKey: "purchases.status.pending"   },
-    { id: "received",  labelKey: "purchases.status.received"  },
-    { id: "cancelled", labelKey: "purchases.status.cancelled" },
+  const statusOpts = [
+    { id: "all", label: t("purchases.status.all") },
+    { id: "pending", label: t("purchases.status.pending") },
+    { id: "received", label: t("purchases.status.received") },
+    { id: "cancelled", label: t("purchases.status.cancelled") },
   ];
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-
+    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-deep)] text-[var(--tx-base)] relative z-10">
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--bd-base)] bg-[var(--bg-base)]">
-        <div>
-          <h1 className="text-[var(--tx-base)] font-semibold text-base flex items-center gap-2">
-            <Truck size={16} className="text-[#14B8A6]" /> {t("purchases.title")}
-          </h1>
-          <p className="text-slate-500 text-xs">{t("purchases.orders", { count: purchases.length })}</p>
-        </div>
-        <div className="flex-1" />
-
-        {/* Status filter pills */}
-        <div className="flex items-center gap-1">
-          {statusKeys.map(({ id, labelKey }) => (
-            <button
-              key={id}
-              onClick={() => setStatusFilter(id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-                statusFilter === id
-                  ? "bg-[#14B8A6]/15 text-[#14B8A6] border border-[#14B8A6]/30"
-                  : "text-slate-500 hover:text-slate-300 border border-transparent hover:border-[var(--bd-base)]"
-              }`}
-            >
-              {t(labelKey)}{id !== "all" && counts[id] > 0 ? ` (${counts[id]})` : ""}
+      <PageHeader
+        icon={<Truck size={22} className="text-[#14B8A6]" />}
+        title={t("purchases.title")}
+        subtitle={t("purchases.orders", { count: purchases.length })}
+        actions={
+          <>
+            <button onClick={load} className="w-12 h-12 rounded-2xl bg-[var(--bg-panel)] border border-[var(--bd-base)] text-slate-500 hover:text-[var(--tx-base)] hover:border-[var(--tx-base)] shadow-sm flex items-center justify-center transition-all cursor-pointer active:scale-95">
+              <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
             </button>
-          ))}
-        </div>
+            <button
+              onClick={() => setCreating(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-black text-sm uppercase tracking-wider rounded-2xl shadow-[0_4px_14px_0_rgba(20,184,166,0.39)] transition-all cursor-pointer active:scale-95"
+            >
+              <Plus size={18} /> {t("purchases.newPO")}
+            </button>
+          </>
+        }
+        searchBlock={
+          <div className="relative group max-w-sm">
+            <Search size={18} className="absolute start-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#14B8A6] transition-colors pointer-events-none" />
+            <input
+              type="text"
+              placeholder={t("purchases.searchPlaceholder")}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full bg-[var(--bg-panel)] border border-[var(--bd-base)] focus:border-[#14B8A6] focus:ring-2 focus:ring-[#14B8A6]/20 focus:outline-none rounded-2xl ps-12 pe-4 py-3 text-[var(--tx-base)] text-sm font-medium placeholder-slate-400 shadow-sm transition-all"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute end-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[var(--tx-base)] cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+        }
+        filtersBlock={
+          <>
+            <div className="flex items-center gap-1.5 text-slate-600">
+              <Calendar size={13} />
+            </div>
+            <PillGroup options={dateOpts as any} value={range} onChange={setRange} />
+            <div className="w-px h-5 bg-[var(--bd-base)]" />
+            <div className="flex items-center gap-1.5 text-slate-600">
+              <Filter size={13} />
+            </div>
+            <PillGroup options={statusOpts as any} value={filterStatus} onChange={setFilterStatus} />
+          </>
+        }
+      />
 
-        {/* Search */}
-        <div className="relative w-48">
-          <Search size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder={t("purchases.searchPlaceholder")}
-            className="w-full ps-8 pe-3 py-1.5 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
-          />
-        </div>
+      {/* Table -> Grid */}
+      <div className="flex-1 overflow-auto p-8 pt-4 scrollbar-hide">
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="h-52 rounded-3xl bg-[var(--bg-panel)] border border-[var(--bd-faint)] animate-pulse" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 gap-6 text-center">
+            <div className="w-20 h-20 rounded-full bg-[var(--bg-panel)] border border-[var(--bd-base)] flex items-center justify-center">
+              <Package size={32} className="text-slate-400" />
+            </div>
+            <p className="text-slate-500 text-lg font-medium">{search || filterStatus !== "all" ? t("purchases.noResults") : t("purchases.noOrders")}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map(p => {
+              const isVoid = p.status === "cancelled";
+              const isPending = p.status === "pending";
+              const accentColor = isVoid ? "bg-slate-500/60" : isPending ? "bg-amber-400/70" : "bg-emerald-500/70";
+              
+              return (
+                <div
+                  key={p.id}
+                  className="group relative h-52 text-left rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between overflow-hidden bg-[var(--bg-panel)] border border-[var(--bd-base)] hover:border-[var(--tx-base)] hover:shadow-xl"
+                >
+                  {/* Status accent stripe (top edge) */}
+                  <div className={`absolute top-0 inset-x-6 h-[2px] opacity-20 transition-opacity group-hover:opacity-100 ${accentColor}`} />
 
-        <button onClick={load} className="w-8 h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--bd-base)] text-slate-500 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-        </button>
+                  {/* Top content */}
+                  <div className="flex-1 pr-1 cursor-pointer" onClick={() => setViewing(p)}>
+                    <div className="flex justify-between items-start">
+                      <p className="text-lg font-bold leading-tight line-clamp-2 text-[var(--tx-base)] max-w-[75%]">
+                        {p.supplier_name ?? "—"}
+                      </p>
+                      <StatusBadge status={p.status} />
+                    </div>
+                    <div className="flex flex-col mt-2">
+                      <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 truncate">
+                        {p.reference_no ?? `PO #${p.id}`}
+                      </span>
+                      <span className="text-xs text-slate-400 mt-1 truncate">
+                        {fmtDate(p.created_at)}
+                      </span>
+                    </div>
+                  </div>
 
-        <button
-          onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors cursor-pointer"
-        >
-          <Plus size={15} /> {t("purchases.newPO")}
-        </button>
-      </div>
+                  {/* Middle metrics */}
+                  <div className="mt-auto mb-3 flex items-end justify-between z-0 cursor-pointer" onClick={() => setViewing(p)}>
+                    <div>
+                      <div className={`text-3xl font-black tabular-nums tracking-tight leading-none text-[#14B8A6]`}>
+                        {fmt(p.total_amount)}
+                      </div>
+                      <div className="text-xs font-bold uppercase tracking-widest mt-1 text-slate-500">
+                        Total
+                      </div>
+                    </div>
+                  </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <table className="w-full text-sm min-w-[800px]">
-          <thead className="sticky top-0 bg-[var(--bg-base)] border-b border-[var(--bd-base)] z-10">
-            <tr>
-              {[
-                t("purchases.columns.date"),
-                t("purchases.columns.supplier"),
-                t("purchases.columns.reference"),
-                t("purchases.columns.items"),
-                t("purchases.columns.total"),
-                t("purchases.columns.status"),
-                "",
-              ].map((h, i) => (
-                <th key={i} className="px-4 py-3 text-start text-xs font-medium text-slate-500 uppercase tracking-wider">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <tr key={i} className="border-b border-[var(--bd-base)]/40">
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <td key={j} className="px-4 py-3">
-                      <div className="h-4 bg-[var(--bg-card)] rounded animate-pulse" />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center py-16 text-slate-600">
-                  <Package size={36} strokeWidth={1} className="mx-auto mb-2" />
-                  <p>{search || statusFilter !== "all" ? t("purchases.noResults") : t("purchases.noOrders")}</p>
-                </td>
-              </tr>
-            ) : filtered.map(p => (
-              <tr key={p.id} className="border-b border-[var(--bd-base)]/40 hover:bg-[var(--bg-card)]/40 transition-colors group">
-                <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
-                  {fmtDate(p.created_at)}
-                </td>
-                <td className="px-4 py-3">
-                  <p className="text-[var(--tx-base)] font-medium">{p.supplier_name ?? <span className="text-slate-600">—</span>}</p>
-                </td>
-                <td className="px-4 py-3 text-slate-400 text-xs">
-                  {p.reference_no ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-slate-400 text-xs">
-                  <ChevronDown size={12} className="inline me-1 text-slate-600" />
-                  <button onClick={() => setViewing(p)} className="text-[#14B8A6] hover:underline cursor-pointer text-xs">
-                    {t("purchases.viewItems")}
-                  </button>
-                </td>
-                <td className="px-4 py-3 text-[#14B8A6] font-medium tabular-nums">
-                  {fmt(p.total_amount)}
-                </td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={p.status} />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Action Buttons (Always visible, moved to bottom) */}
+                  <div className="pt-3 border-t border-[var(--bd-faint)] flex items-center gap-2 z-10 overflow-x-auto scrollbar-hide shrink-0">
                     {p.status === "pending" && (
                       <>
                         <button
-                          onClick={() => setReceiving(p)}
-                          className="px-2.5 py-1 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-lg transition-colors cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); setReceiving(p); }}
+                          className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-[var(--bg-base)] border border-emerald-500/20 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
                         >
                           {t("purchases.actions.receive")}
                         </button>
                         <button
-                          onClick={() => handleCancel(p)}
-                          className="px-2.5 py-1 text-xs bg-[var(--bg-raised)] hover:bg-red-500/10 border border-[var(--bd-base)] hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); handleCancel(p); }}
+                          className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-[var(--bg-base)] hover:bg-red-500 text-slate-400 hover:text-[var(--bg-base)] border border-[var(--bd-base)] hover:border-red-500 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
                         >
                           {t("purchases.actions.cancel")}
                         </button>
@@ -741,24 +760,24 @@ export default function PurchasesScreen({ user }: Props) {
                     )}
                     {p.status === "received" && (
                       <button
-                        onClick={() => setVoiding(p)}
-                        className="px-2.5 py-1 text-xs bg-[var(--bg-raised)] hover:bg-red-500/10 border border-[var(--bd-base)] hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); setVoiding(p); }}
+                        className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-[var(--bg-base)] hover:bg-red-500 text-slate-400 hover:text-[var(--bg-base)] border border-[var(--bd-base)] hover:border-red-500 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
                       >
                         {t("purchases.actions.void")}
                       </button>
                     )}
                     <button
-                      onClick={() => setViewing(p)}
-                      className="px-2.5 py-1 text-xs bg-[var(--bg-raised)] hover:bg-[var(--bg-raised)] border border-[var(--bd-base)] text-slate-400 hover:text-[var(--tx-base)] rounded-lg transition-colors cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); setViewing(p); }}
+                      className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-[var(--bg-base)] hover:bg-[var(--tx-base)] border border-[var(--bd-base)] text-slate-400 hover:text-[var(--bg-base)] rounded-xl transition-colors cursor-pointer whitespace-nowrap ms-auto"
                     >
                       {t("purchases.actions.view")}
                     </button>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Cancel error toast */}

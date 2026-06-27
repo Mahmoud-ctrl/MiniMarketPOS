@@ -34,3 +34,30 @@
   --tx-base:   #0F172A;
   --tx-muted:  #475569;
 }
+
+/* ── Custom Scrollbar ───────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bd-strong);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--tx-muted);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bd-strong) transparent;
+}

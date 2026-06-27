@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  AlertTriangle, ChevronDown, Flame, History, Package,
-  Pencil, Plus, RefreshCw, Search, Snowflake, Trash2, TrendingDown,
+  ChevronDown, Flame, History, Package,
+  Plus, RefreshCw, Search, Snowflake, Trash2, TrendingDown,
+  Filter, X
 } from "lucide-react";
 import { api } from "../lib/api";
 import { generateEAN13 } from "../lib/barcode";
@@ -11,11 +12,22 @@ import Modal from "../components/Modal";
 import CategorySelect from "../components/CategorySelect";
 import AddProductModal from "./AddProductModal";
 import { useCurrency } from "../context/CurrencyContext";
+import { PageHeader } from "../components/PageHeader";
+import { PillGroup } from "../components/PillGroup";
 
 interface Props { user: User }
 
 const orNull = (s: string) => s.trim() || null;
 const toPct  = (f: number) => (f * 100).toFixed(1);
+
+// Vercel/Editorial style muted neon palette
+const CAT_COLORS = [
+  "#14B8A6", "#6366F1", "#F59E0B", "#10B981",
+  "#EF4444", "#8B5CF6", "#06B6D4", "#F97316",
+  "#EC4899", "#84CC16",
+];
+const catColor = (id: number | null) =>
+  id == null ? "#475569" : CAT_COLORS[id % CAT_COLORS.length];
 
 function stockColor(qty: number, min: number) {
   if (qty <= 0)              return "text-red-400";
@@ -629,6 +641,7 @@ export default function InventoryScreen({ user }: Props) {
   const [suppliers, setSuppliers]     = useState<Supplier[]>([]);
   const [search, setSearch]           = useState("");
   const [showLow, setShowLow]         = useState(false);
+  const [filterCat, setFilterCat]     = useState<number | "all">("all");
   const [loading, setLoading]         = useState(false);
   const [adjusting, setAdjusting]         = useState<ProductStock | null>(null);
   const [editing, setEditing]             = useState<ProductStock | null>(null);
@@ -659,12 +672,27 @@ export default function InventoryScreen({ user }: Props) {
 
   const alertMap = new Map(alerts.map(a => [a.product_id, a]));
 
-  const filtered = search.trim()
-    ? stocks.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        (p.barcode ?? "").includes(search) ||
-        (p.internal_code ?? "").includes(search))
-    : stocks;
+  const filtered = stocks.filter(p => {
+    const matchCat = filterCat === "all" || p.category_id === filterCat;
+    const term = search.toLowerCase();
+    const matchQ = !term ||
+                   p.name.toLowerCase().includes(term) ||
+                   (p.barcode ?? "").includes(term) ||
+                   (p.internal_code ?? "").includes(term);
+    return matchCat && matchQ;
+  });
+
+  const catOpts = [
+    { id: "all", label: "All Categories" },
+    ...categories.map(c => ({ id: c.id, label: c.name }))
+  ] as any;
+
+  const lowCount = stocks.filter(p => p.low_stock_flag).length;
+
+  const statusOpts = [
+    { id: "all", label: "All Stock" },
+    { id: "low", label: `Low Stock${lowCount > 0 ? ` (${lowCount})` : ""}` },
+  ] as any;
 
   const handleSaved = () => {
     setShowAdd(false); setEditing(null); setAdjusting(null); setWasting(null); setViewingHistory(null);
@@ -685,169 +713,177 @@ export default function InventoryScreen({ user }: Props) {
     if (p) setWasting(p);
   };
 
-  const lowCount = stocks.filter(p => p.low_stock_flag).length;
-
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-deep)] text-[var(--tx-base)] relative z-10">
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--bd-base)] bg-[var(--bg-base)]">
-        <div>
-          <h1 className="text-[var(--tx-base)] font-semibold text-base">{t("inventory.title")}</h1>
-          <p className="text-slate-500 text-xs">{t("pos.products", { count: stocks.length })}</p>
-        </div>
-        <div className="flex-1" />
-
-        {lowCount > 0 && (
-          <button
-            onClick={() => setShowLow(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${showLow ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-[var(--bg-card)] border border-[var(--bd-base)] text-amber-400 hover:border-amber-500/30"}`}
-          >
-            <AlertTriangle size={12} />
-            {t("inventory.lowStock", { count: lowCount })}
-          </button>
-        )}
-
-        <div className="relative w-56">
-          <Search size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder={t("inventory.searchPlaceholder")}
-            className="w-full ps-8 pe-3 py-1.5 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors"
-          />
-        </div>
-
-        <button onClick={load} className="w-8 h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--bd-base)] text-slate-500 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-        </button>
-
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-semibold text-sm rounded-xl transition-colors cursor-pointer"
-        >
-          <Plus size={15} />
-          {t("inventory.addProduct")}
-        </button>
-      </div>
+      <PageHeader
+        icon={<Package size={22} className="text-[#14B8A6]" />}
+        title={t("inventory.title")}
+        subtitle={t("pos.products", { count: stocks.length })}
+        actions={
+          <>
+            <button onClick={load} className="w-12 h-12 rounded-2xl bg-[var(--bg-panel)] border border-[var(--bd-base)] text-slate-500 hover:text-[var(--tx-base)] hover:border-[var(--tx-base)] shadow-sm flex items-center justify-center transition-all cursor-pointer active:scale-95">
+              <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+            </button>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-black text-sm uppercase tracking-wider rounded-2xl shadow-[0_4px_14px_0_rgba(20,184,166,0.39)] transition-all cursor-pointer active:scale-95"
+            >
+              <Plus size={18} />
+              {t("inventory.addProduct")}
+            </button>
+          </>
+        }
+        searchBlock={
+          <div className="relative group max-w-sm">
+            <Search size={18} className="absolute start-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#14B8A6] transition-colors pointer-events-none" />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder={t("inventory.searchPlaceholder")}
+              className="w-full ps-12 pe-4 py-3 bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-2xl text-[var(--tx-base)] text-sm font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/20 focus:border-[#14B8A6] shadow-sm transition-all"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute end-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[var(--tx-base)] cursor-pointer">
+                <X size={15} />
+              </button>
+            )}
+          </div>
+        }
+        filtersBlock={
+          <>
+            <div className="flex items-center gap-1.5 text-slate-600">
+              <Filter size={13} />
+            </div>
+            <select
+              value={filterCat}
+              onChange={e => setFilterCat(e.target.value === "all" ? "all" : Number(e.target.value))}
+              className="px-4 py-2 bg-[var(--bg-panel)] border border-[var(--bd-base)] rounded-xl text-[var(--tx-base)] text-xs font-bold uppercase tracking-wider focus:outline-none focus:border-[#14B8A6] shadow-sm appearance-none pr-8 cursor-pointer relative"
+            >
+              {catOpts.map((o: any) => (
+                <option key={o.id} value={o.id}>{o.label}</option>
+              ))}
+            </select>
+            <div className="w-px h-5 bg-[var(--bd-base)]" />
+            <PillGroup
+              options={statusOpts}
+              value={showLow ? "low" : "all"}
+              onChange={(v) => setShowLow(v === "low")}
+            />
+          </>
+        }
+      />
 
       {/* Perishable alerts banner */}
       <PerishableBanner alerts={alerts} onWaste={openWasteById} />
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto mt-3">
-        <table className="w-full text-sm min-w-[900px]">
-          <thead className="sticky top-0 bg-[var(--bg-base)] border-b border-[var(--bd-base)] z-10">
-            <tr>
-              {[
-                t("inventory.columns.product"),
-                t("inventory.columns.category"),
-                t("inventory.columns.stock"),
-                t("inventory.columns.cost"),
-                t("inventory.columns.retail"),
-                t("inventory.columns.status"),
-                "",
-              ].map((h, i) => (
-                <th key={i} className="px-4 py-3 text-start text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array.from({ length: 8 }).map((_, i) => (
-                <tr key={i} className="border-b border-[var(--bd-base)]/40">
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <td key={j} className="px-4 py-3">
-                      <div className="h-4 bg-[var(--bg-card)] rounded animate-pulse" />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center py-16 text-slate-600">
-                  <Package size={36} strokeWidth={1} className="mx-auto mb-2" />
-                  <p>{search ? t("inventory.noResults") : t("inventory.noProducts")}</p>
-                </td>
-              </tr>
-            ) : filtered.map(p => {
+      {/* Table -> Grid */}
+      <div className="flex-1 overflow-auto p-8 pt-4 scrollbar-hide">
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="h-52 rounded-3xl bg-[var(--bg-panel)] border border-[var(--bd-faint)] animate-pulse" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 gap-6 text-center">
+            <div className="w-20 h-20 rounded-full bg-[var(--bg-panel)] border border-[var(--bd-base)] flex items-center justify-center">
+              <Package size={32} className="text-slate-400" />
+            </div>
+            <p className="text-slate-500 text-lg font-medium">{search ? t("inventory.noResults") : t("inventory.noProducts")}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map(p => {
               const alert = alertMap.get(p.product_id);
+              const color = catColor(p.category_id ?? null);
+              
               return (
-                <tr key={p.product_id} className="border-b border-[var(--bd-base)]/40 hover:bg-[var(--bg-card)]/40 transition-colors group">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <div className="text-[var(--tx-base)] font-medium leading-tight">{p.name}</div>
-                        <div className="text-slate-600 text-xs mt-0.5 tabular">
-                          {p.barcode ?? p.internal_code ?? "—"}
-                        </div>
-                      </div>
+                <div
+                  key={p.product_id}
+                  className={`group relative h-52 text-left rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between overflow-hidden ${
+                    p.is_frozen
+                      ? "opacity-50 bg-[var(--bg-base)] border border-[var(--bd-base)] grayscale"
+                      : "bg-[var(--bg-panel)] border border-[var(--bd-base)] hover:border-[var(--tx-base)] hover:shadow-xl"
+                  }`}
+                >
+                  {/* Subtle category hint line */}
+                  {!p.is_frozen && (
+                    <div className="absolute top-0 left-6 right-6 h-[2px] opacity-20 transition-opacity group-hover:opacity-100" style={{ backgroundColor: color }} />
+                  )}
+
+                  {/* Top content */}
+                  <div className="flex-1 pr-1 cursor-pointer" onClick={() => setEditing(p)}>
+                    <div className="flex justify-between items-start">
+                      <p className="text-lg font-bold leading-tight line-clamp-2 text-[var(--tx-base)] max-w-[85%]">
+                        {p.name}
+                      </p>
                       {p.is_perishable && (
-                        <span title="Perishable"><Flame size={11} className="text-orange-400 flex-shrink-0" /></span>
+                        <Flame size={16} className="text-orange-400 flex-shrink-0 mt-0.5" />
                       )}
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-400 text-xs">
-                    {p.category_name ?? "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className={`font-semibold tabular ${stockColor(p.stock_qty, p.min_stock)}`}>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 truncate">
+                        {p.category_name ?? "—"}
+                      </span>
+                      {p.low_stock_flag && <TrendingDown size={14} className="text-amber-500 flex-shrink-0" />}
+                    </div>
+                  </div>
+
+                  {/* Middle metrics */}
+                  <div className="mt-auto mb-3 flex items-end justify-between z-0 cursor-pointer" onClick={() => setEditing(p)}>
+                    <div>
+                      <div className={`text-3xl font-black tabular-nums tracking-tight leading-none ${stockColor(p.stock_qty, p.min_stock)}`}>
                         {p.stock_qty}
-                      </span>
-                      <span className="text-slate-600 text-xs">{p.unit}</span>
-                      {p.low_stock_flag && <TrendingDown size={12} className="text-amber-400" />}
-                      {alert && expiryBadge(alert.days_until_expiry)}
+                      </div>
+                      <div className="text-xs font-bold uppercase tracking-widest mt-1 text-slate-500 flex items-center gap-1.5">
+                        {p.unit}
+                        {alert && (
+                          <div className="scale-75 origin-left -ml-1">
+                            {expiryBadge(alert.days_until_expiry)}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-400 tabular text-xs">{fmt(p.cost_price)}</td>
-                  <td className="px-4 py-3 text-[#14B8A6] font-medium tabular">{fmt(p.sell_price_retail)}</td>
-                  <td className="px-4 py-3">
-                    {p.is_frozen ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs rounded-full">
-                        <Snowflake size={10} /> Frozen
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-full">
-                        Active
-                      </span>
+                    <div className="text-end">
+                      <div className="text-[var(--tx-base)] font-bold tabular-nums">
+                        {fmt(p.sell_price_retail)}
+                      </div>
+                      <div className="text-slate-500 text-xs tabular-nums mt-0.5">
+                        {t("inventory.columns.cost")}: {fmt(p.cost_price)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons (Always visible for touch, moved to bottom) */}
+                  <div className="pt-3 border-t border-[var(--bd-faint)] flex items-center gap-1.5 z-10 overflow-x-auto scrollbar-hide shrink-0">
+                    {p.is_perishable && (
+                      <button onClick={(e) => { e.stopPropagation(); setWasting(p); }} title="Log waste"
+                        className="w-9 h-9 flex-shrink-0 rounded-xl bg-[var(--bg-raised)] hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer border border-[var(--bd-faint)]">
+                        <Flame size={15} />
+                      </button>
                     )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {p.is_perishable && (
-                        <button onClick={() => setWasting(p)} title="Log waste"
-                          className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer">
-                          <Flame size={13} />
-                        </button>
-                      )}
-                      <button onClick={() => setAdjusting(p)} title="Adjust stock"
-                        className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
-                        <Plus size={13} />
-                      </button>
-                      <button onClick={() => setViewingHistory(p)} title="Price history"
-                        className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-violet-500/20 text-slate-400 hover:text-violet-400 flex items-center justify-center transition-colors cursor-pointer">
-                        <History size={13} />
-                      </button>
-                      <button onClick={() => setEditing(p)} title="Edit product"
-                        className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
-                        <Pencil size={13} />
-                      </button>
-                      <button onClick={() => toggleFreeze(p)} title={p.is_frozen ? "Unfreeze" : "Freeze"}
-                        className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 flex items-center justify-center transition-colors cursor-pointer">
-                        <Snowflake size={13} />
-                      </button>
-                      <button onClick={() => setConfirmDeact(p)} title="Deactivate"
-                        className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                    <button onClick={(e) => { e.stopPropagation(); setAdjusting(p); }} title="Adjust stock"
+                      className="w-9 h-9 flex-shrink-0 rounded-xl bg-[var(--bg-raised)] hover:bg-teal-500/20 text-slate-400 hover:text-[#14B8A6] flex items-center justify-center transition-colors cursor-pointer border border-[var(--bd-faint)]">
+                      <Plus size={15} />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setViewingHistory(p); }} title="Price history"
+                      className="w-9 h-9 flex-shrink-0 rounded-xl bg-[var(--bg-raised)] hover:bg-violet-500/20 text-slate-400 hover:text-violet-400 flex items-center justify-center transition-colors cursor-pointer border border-[var(--bd-faint)]">
+                      <History size={15} />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); toggleFreeze(p); }} title={p.is_frozen ? "Unfreeze" : "Freeze"}
+                      className="w-9 h-9 flex-shrink-0 rounded-xl bg-[var(--bg-raised)] hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 flex items-center justify-center transition-colors cursor-pointer border border-[var(--bd-faint)]">
+                      <Snowflake size={15} />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setConfirmDeact(p); }} title="Deactivate"
+                      className="w-9 h-9 flex-shrink-0 rounded-xl bg-[var(--bg-raised)] hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer border border-[var(--bd-faint)]">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
+          </div>
+        )}
       </div>
 
       {/* Modals */}
