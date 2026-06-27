@@ -81,6 +81,8 @@ pub struct Product {
     pub is_frozen:                bool,
     pub is_perishable:            bool,
     pub default_shelf_life_days:  Option<i32>,
+    pub is_variable_price:        bool,
+    pub is_favorite:              bool,
     pub created_at:               DateTime<Utc>,
     pub updated_at:               DateTime<Utc>,
 }
@@ -107,6 +109,8 @@ pub struct CreateProductPayload {
     pub expiry_date:             Option<String>, // "YYYY-MM-DD"
     pub is_perishable:           Option<bool>,
     pub default_shelf_life_days: Option<i32>,
+    pub is_variable_price:       Option<bool>,
+    pub is_favorite:             Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -131,6 +135,8 @@ pub struct UpdateProductPayload {
     pub expiry_date:             Option<String>,
     pub is_perishable:           Option<bool>,
     pub default_shelf_life_days: Option<i32>,
+    pub is_variable_price:       Option<bool>,
+    pub is_favorite:             Option<bool>,
 }
 
 // ── Customers ────────────────────────────────────────────────────────────────
@@ -182,12 +188,15 @@ pub struct Sale {
     pub discount:       i64,
     pub tax:            i64,
     pub total_amount:   i64,
-    pub amount_paid:    i64,
-    pub change_given:   i64,
-    pub payment_method: String,
-    pub status:         String,
-    pub notes:          Option<String>,
-    pub created_at:     DateTime<Utc>,
+    pub amount_paid:            i64,
+    pub change_given:           i64,
+    pub payment_method:         String,
+    pub status:                 String,
+    pub notes:                  Option<String>,
+    pub created_at:             DateTime<Utc>,
+    pub paid_primary:           i64,
+    pub paid_secondary:         i64,
+    pub exchange_rate_snapshot: i64,
 }
 
 #[derive(Debug, Serialize, FromRow)]
@@ -231,9 +240,12 @@ pub struct CreateSalePayload {
     pub customer_id:    Option<i64>,
     pub items:          Vec<SaleItemInput>,
     pub discount:       Option<i64>,
-    pub amount_paid:    i64,
-    pub payment_method: Option<String>,
-    pub notes:          Option<String>,
+    pub amount_paid:            i64,
+    pub payment_method:         Option<String>,
+    pub notes:                  Option<String>,
+    pub paid_primary:           Option<i64>,
+    pub paid_secondary:         Option<i64>,
+    pub exchange_rate_snapshot: Option<i64>,
 }
 
 #[derive(Debug, Serialize, FromRow)]
@@ -289,6 +301,8 @@ pub struct ProductStock {
     pub is_frozen:               bool,
     pub is_perishable:           bool,
     pub default_shelf_life_days: Option<i32>,
+    pub is_variable_price:       bool,
+    pub is_favorite:             bool,
     pub stock_qty:               f64,
     pub low_stock_flag:          bool,
 }
@@ -375,6 +389,99 @@ pub struct CreatePurchasePayload {
     pub reference_no: Option<String>,
     pub notes:        Option<String>,
     pub items:        Vec<CreatePurchaseItemPayload>,
+}
+
+// ── Promotions ────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct Promotion {
+    pub id:         i64,
+    pub name:       String,
+    pub product_id: i64,
+    pub buy_qty:    f64,
+    pub get_qty:    f64,
+    pub is_active:  bool,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePromotionPayload {
+    pub name:       String,
+    pub product_id: i64,
+    pub buy_qty:    f64,
+    pub get_qty:    f64,
+}
+
+// ── No-sale events ────────────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct NoSaleEvent {
+    pub id:         i64,
+    pub cashier_id: i64,
+    pub session_id: Option<i64>,
+    pub notes:      Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+// ── Sale Returns ──────────────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct SaleReturn {
+    pub id:               i64,
+    pub original_sale_id: i64,
+    pub cashier_id:       i64,
+    pub total_refund:     i64,
+    pub notes:            Option<String>,
+    pub created_at:       DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct SaleReturnItem {
+    pub id:            i64,
+    pub return_id:     i64,
+    pub sale_item_id:  i64,
+    pub product_id:    i64,
+    pub quantity:      f64,
+    pub unit_price:    i64,
+    pub refund_amount: i64,
+    pub is_resellable: bool,
+    pub created_at:    DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SaleReturnWithItems {
+    #[serde(flatten)]
+    pub return_header: SaleReturn,
+    pub items:         Vec<SaleReturnItem>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ReturnItemInput {
+    pub sale_item_id: i64,
+    pub quantity:     f64,
+    pub is_resellable: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateReturnPayload {
+    pub original_sale_id: i64,
+    pub cashier_id:       i64,
+    pub items:            Vec<ReturnItemInput>,
+    pub notes:            Option<String>,
+}
+
+// ── Price History ─────────────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct PriceHistoryEntry {
+    pub id:              i64,
+    pub product_id:      i64,
+    pub changed_by:      Option<i64>,
+    pub changed_by_name: Option<String>,
+    pub changed_at:      DateTime<Utc>,
+    pub field_name:      String,
+    pub old_value:       Option<i64>,
+    pub new_value:       i64,
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────

@@ -145,6 +145,7 @@ function QuickItemForm({ categories, suppliers, user, onBack, onClose, onSaved }
     tva_rate: "0", apply_tva: false, apply_discount: true,
     opening_stock: "", min_stock: "0", expiry_date: "",
     is_perishable: false, default_shelf_life_days: "",
+    is_variable_price: false, is_favorite: false,
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
@@ -177,6 +178,8 @@ function QuickItemForm({ categories, suppliers, user, onBack, onClose, onSaved }
         expiry_date:             f.expiry_date || null,
         is_perishable:           f.is_perishable,
         default_shelf_life_days: f.default_shelf_life_days ? parseInt(f.default_shelf_life_days) : null,
+        is_variable_price:       f.is_variable_price,
+        is_favorite:             f.is_favorite,
       });
       // Product saved — close modal now. Stock adjustment is best-effort.
       onSaved();
@@ -272,10 +275,12 @@ function QuickItemForm({ categories, suppliers, user, onBack, onClose, onSaved }
         </Field>
       </div>
 
-      <div className="flex gap-5">
-        <Toggle checked={f.apply_tva}     onChange={v => setF(p => ({ ...p, apply_tva: v }))}     label="Apply TVA on sale" />
-        <Toggle checked={f.apply_discount} onChange={v => setF(p => ({ ...p, apply_discount: v }))} label="Discountable" />
-        <Toggle checked={f.is_perishable}  onChange={v => setF(p => ({ ...p, is_perishable: v }))}  label="Perishable" />
+      <div className="flex flex-wrap gap-5">
+        <Toggle checked={f.apply_tva}         onChange={v => setF(p => ({ ...p, apply_tva: v }))}         label="Apply TVA on sale" />
+        <Toggle checked={f.apply_discount}    onChange={v => setF(p => ({ ...p, apply_discount: v }))}    label="Discountable" />
+        <Toggle checked={f.is_perishable}     onChange={v => setF(p => ({ ...p, is_perishable: v }))}     label="Perishable" />
+        <Toggle checked={f.is_favorite}       onChange={v => setF(p => ({ ...p, is_favorite: v }))}       label="Favorites strip" />
+        <Toggle checked={f.is_variable_price} onChange={v => setF(p => ({ ...p, is_variable_price: v }))} label="Variable price" />
       </div>
 
       {f.is_perishable && (

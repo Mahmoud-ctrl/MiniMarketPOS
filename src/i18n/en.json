@@ -39,7 +39,18 @@
     "noProductsFound": "No products found",
     "all": "All",
     "products": "{{count}} products",
-    "noSession": "No open session"
+    "noSession": "No open session",
+    "noSale": "No Sale",
+    "noSaleLogged": "No sale logged",
+    "favorites": "Favorites",
+    "variablePrice": "Enter Price",
+    "variablePriceHint": "Set selling price for this item",
+    "enterAmount": "Enter amount",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "allItems": "All Items",
+    "categories": "Categories",
+    "categoryCount": "{{count}} categories"
   },
   "inventory": {
     "title": "Inventory",
@@ -186,7 +197,8 @@
       "categories": "Categories",
       "suppliers": "Suppliers",
       "currency": "Currency",
-      "language": "Language"
+      "language": "Language",
+      "shortcuts": "Shortcuts"
     },
     "language": {
       "title": "Language & Direction",
@@ -321,7 +333,46 @@
     "orderNav": "{{current}} / {{total}} · ← → to navigate · Ctrl+N new",
     "orderDone": "done",
     "closeOrder": "Close this order",
-    "newOrder": "New order (Ctrl+N)"
+    "newOrder": "New order (Ctrl+N)",
+    "hold": "Hold",
+    "unhold": "Resume",
+    "heldBadge": "HELD",
+    "merge": "Merge",
+    "mergeFrom": "Merge from order",
+    "moveTo": "Move to order",
+    "freeItem": "FREE",
+    "packMode": "Pack",
+    "pieceMode": "Piece",
+    "quickPay": "Quick Pay",
+    "orderNav": "{{current}} / {{total}} · ← → nav · Ctrl+N / F8 new · F9 hold"
+  },
+  "shortcuts": {
+    "search": "Search",
+    "noSale": "No Sale",
+    "checkout": "Checkout",
+    "quickPay": "Quick Pay+Print",
+    "newTab": "New Tab",
+    "hold": "Hold",
+    "clear": "Clear"
+  },
+  "shortcutsRef": {
+    "subtitle": "Reference only — keys cannot be remapped.",
+    "posScreen": "POS Screen",
+    "cartSection": "Cart",
+    "checkoutSection": "Checkout Modal",
+    "focusSearch": "Focus the search bar",
+    "noSale": "No-sale / open cash drawer",
+    "barcodeSearch": "Barcode lookup (type in search then Enter)",
+    "jumpToSearch": "Any letter key jumps to search",
+    "openCheckout": "Open checkout modal",
+    "quickPay": "Exact cash payment + auto-print (no modal)",
+    "newTab": "New order tab",
+    "holdTab": "Toggle hold on current order",
+    "clearCart": "Clear all items from cart",
+    "navigateTabs": "Switch between order tabs",
+    "confirmPay": "Confirm payment (no print)",
+    "confirmPrint": "Confirm payment + print receipt",
+    "closeModal": "Close modal / cancel"
   },
   "purchases": {
     "title": "Purchases",
@@ -470,12 +521,32 @@
       "wallet": "Wallet",
       "credit": "Credit"
     },
+    "returnItems": "Return Items",
     "detail": {
       "discount": "Discount",
       "tva": "TVA",
       "total": "Total",
       "paid": "Paid",
       "change": "Change"
+    },
+    "return": {
+      "title": "Return Items — Sale #{{id}}",
+      "itemsLabel": "Select items to return",
+      "soldQty": "Sold: {{qty}}",
+      "returnedQty": "Already returned: {{qty}}",
+      "alreadyReturned": "All returned",
+      "condition": "Condition:",
+      "resellable": "Resellable",
+      "damaged": "Damaged (write-off)",
+      "all": "all",
+      "refundTotal": "Refund Total",
+      "submit": "Process Return",
+      "success": "Return processed successfully"
     }
+  },
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "loading": "Loading…"
   }
 }

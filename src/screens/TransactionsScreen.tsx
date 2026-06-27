@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ScrollText, Search, X, Banknote, CreditCard, Wallet,
   Printer, AlertTriangle, ChevronRight, ScanBarcode, UserCircle,
-  Calendar, Filter,
+  Calendar, Filter, RotateCcw, CheckCircle2,
 } from "lucide-react";
 import { api } from "../lib/api";
-import { Sale, SaleWithItems, User } from "../types";
+import { Sale, SaleReturnItem, SaleWithItems, User } from "../types";
 import { useCurrency } from "../context/CurrencyContext";
 import Modal from "../components/Modal";
 import { buildReceiptHtml, doPrint } from "../lib/receipt";
@@ -29,6 +30,197 @@ function toISOStart(r: DateRange): string | undefined {
   return undefined;
 }
 
+// ── Return modal ──────────────────────────────────────────────────────────────
+function ReturnModal({
+  detail, user, onClose, onReturned,
+}: {
+  detail:     SaleWithItems;
+  user:       User;
+  onClose:    () => void;
+  onReturned: () => void;
+}) {
+  const { t } = useTranslation();
+  const { fmt } = useCurrency();
+
+  const [prior,       setPrior]      = useState<SaleReturnItem[]>([]);
+  const [returnQtys,  setReturnQtys] = useState<Record<number, number>>({});
+  const [resellable,  setResellable] = useState<Record<number, boolean>>({});
+  const [processing,  setProcessing] = useState(false);
+  const [error,       setError]      = useState("");
+  const [done,        setDone]       = useState(false);
+
+  useEffect(() => {
+    api.getSaleReturnItems(detail.id).then(rows => {
+      setPrior(rows);
+      const qtys: Record<number, number> = {};
+      const res:  Record<number, boolean> = {};
+      for (const item of detail.items) { qtys[item.id] = 0; res[item.id] = true; }
+      setReturnQtys(qtys);
+      setResellable(res);
+    }).catch(() => {});
+  }, [detail.id, detail.items]);
+
+  const returnedMap: Record<number, number> = {};
+  for (const p of prior) {
+    returnedMap[p.sale_item_id] = (returnedMap[p.sale_item_id] ?? 0) + p.quantity;
+  }
+
+  const refundTotal = detail.items.reduce((s, item) => {
+    const qty = returnQtys[item.id] ?? 0;
+    return s + item.unit_price * qty;
+  }, 0);
+
+  const hasAny = Object.values(returnQtys).some(q => q > 0);
+
+  const handleSubmit = async () => {
+    setProcessing(true); setError("");
+    try {
+      const items = detail.items
+        .filter(i => (returnQtys[i.id] ?? 0) > 0)
+        .map(i => ({
+          sale_item_id:  i.id,
+          quantity:      returnQtys[i.id],
+          is_resellable: resellable[i.id] ?? true,
+        }));
+      await api.createPartialReturn({
+        original_sale_id: detail.id,
+        cashier_id:       user.id,
+        items,
+      });
+      setDone(true);
+      onReturned();
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? "Return failed");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <Modal title={t("transactions.return.title", { id: detail.id })} onClose={onClose}>
+      <div className="p-6 space-y-4 w-[520px] max-w-full">
+        {done ? (
+          <div className="flex flex-col items-center gap-3 py-6">
+            <CheckCircle2 size={40} className="text-emerald-400" />
+            <p className="text-[var(--tx-base)] font-bold">{t("transactions.return.success")}</p>
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 bg-[#14B8A6] hover:bg-[#0D9488] text-slate-900 font-bold rounded-xl cursor-pointer"
+            >
+              {t("common.close")}
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="text-xs text-slate-500 uppercase tracking-wider">{t("transactions.return.itemsLabel")}</div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {detail.items.map(item => {
+                const alreadyReturned = returnedMap[item.id] ?? 0;
+                const maxReturn = item.quantity - alreadyReturned;
+                if (maxReturn <= 0) return (
+                  <div key={item.id} className="flex items-center gap-3 px-4 py-3 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl opacity-40">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[var(--tx-base)] text-sm font-medium truncate">{item.product_name}</div>
+                      <div className="text-slate-500 text-xs">{t("transactions.return.alreadyReturned")}</div>
+                    </div>
+                  </div>
+                );
+                return (
+                  <div key={item.id} className="px-4 py-3 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[var(--tx-base)] text-sm font-medium truncate">{item.product_name}</div>
+                        <div className="text-slate-500 text-xs tabular-nums">
+                          {fmt(item.unit_price)} · {t("transactions.return.soldQty", { qty: item.quantity })}
+                          {alreadyReturned > 0 && ` · ${t("transactions.return.returnedQty", { qty: alreadyReturned })}`}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => setReturnQtys(prev => ({ ...prev, [item.id]: Math.max(0, (prev[item.id] ?? 0) - 1) }))}
+                          className="w-7 h-7 rounded-lg bg-[var(--bg-card)] border border-[var(--bd-base)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer"
+                        >−</button>
+                        <span className="text-[var(--tx-base)] font-bold text-sm tabular-nums w-6 text-center">
+                          {returnQtys[item.id] ?? 0}
+                        </span>
+                        <button
+                          onClick={() => setReturnQtys(prev => ({ ...prev, [item.id]: Math.min(maxReturn, (prev[item.id] ?? 0) + 1) }))}
+                          className="w-7 h-7 rounded-lg bg-[var(--bg-card)] border border-[var(--bd-base)] text-slate-400 hover:text-[#14B8A6] flex items-center justify-center transition-colors cursor-pointer"
+                        >+</button>
+                        <button
+                          onClick={() => setReturnQtys(prev => ({ ...prev, [item.id]: maxReturn }))}
+                          className="text-xs text-slate-600 hover:text-slate-400 transition-colors cursor-pointer px-1"
+                        >{t("transactions.return.all")}</button>
+                      </div>
+                    </div>
+                    {(returnQtys[item.id] ?? 0) > 0 && (
+                      <div className="flex items-center gap-4 pt-1">
+                        <span className="text-xs text-slate-500">{t("transactions.return.condition")}</span>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={`resellable-${item.id}`}
+                            checked={resellable[item.id] !== false}
+                            onChange={() => setResellable(prev => ({ ...prev, [item.id]: true }))}
+                            className="accent-[#14B8A6]"
+                          />
+                          <span className="text-xs text-[var(--tx-base)]">{t("transactions.return.resellable")}</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={`resellable-${item.id}`}
+                            checked={resellable[item.id] === false}
+                            onChange={() => setResellable(prev => ({ ...prev, [item.id]: false }))}
+                            className="accent-red-400"
+                          />
+                          <span className="text-xs text-red-400">{t("transactions.return.damaged")}</span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {refundTotal > 0 && (
+              <div className="flex justify-between items-center px-4 py-3 bg-emerald-500/8 border border-emerald-500/20 rounded-xl">
+                <span className="text-emerald-400 text-sm font-semibold">{t("transactions.return.refundTotal")}</span>
+                <span className="text-emerald-400 font-bold text-lg tabular-nums">{fmt(refundTotal)}</span>
+              </div>
+            )}
+
+            {error && (
+              <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">{error}</div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={onClose}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--bg-base)] border border-[var(--bd-base)] text-slate-400 text-sm font-semibold hover:text-[var(--tx-base)] transition-colors cursor-pointer"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={!hasAny || processing}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2"
+              >
+                {processing ? (
+                  <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
+                ) : (
+                  <RotateCcw size={14} />
+                )}
+                {t("transactions.return.submit")}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 // ── Detail modal ──────────────────────────────────────────────────────────────
 function TransactionDetail({
   saleId, user, onClose, onVoided,
@@ -40,10 +232,11 @@ function TransactionDetail({
 }) {
   const { t } = useTranslation();
   const { fmt, fmtAlt, symbol, altSymbol } = useCurrency();
-  const [detail,  setDetail]  = useState<SaleWithItems | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [voiding, setVoiding] = useState(false);
-  const [error,   setError]   = useState("");
+  const [detail,     setDetail]     = useState<SaleWithItems | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [voiding,    setVoiding]    = useState(false);
+  const [error,      setError]      = useState("");
+  const [showReturn, setShowReturn] = useState(false);
   const [storeInfo, setStoreInfo] = useState({ name: "", address: "", phone: "", tagline: "", logo: "" });
 
   useEffect(() => {
@@ -97,7 +290,9 @@ function TransactionDetail({
     doPrint(html);
   };
 
-  const canVoid = (detail?.status === "completed" || detail?.status === "pending") &&
+  const canVoid   = (detail?.status === "completed" || detail?.status === "pending") &&
+    (user.role === "admin" || user.role === "manager");
+  const canReturn = (detail?.status === "completed" || detail?.status === "pending" || detail?.status === "refunded") &&
     (user.role === "admin" || user.role === "manager");
 
   const statusStyle = detail
@@ -202,13 +397,22 @@ function TransactionDetail({
             )}
 
             {/* Actions */}
-            <div className="flex gap-2 pt-1">
+            <div className="flex gap-2 pt-1 flex-wrap">
               <button
                 onClick={handleReprint}
                 className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-card)] hover:bg-[var(--bg-raised)] border border-[var(--bd-base)] text-slate-300 text-sm font-medium rounded-xl transition-colors cursor-pointer"
               >
                 <Printer size={14} /> {t("transactions.reprint")}
               </button>
+
+              {canReturn && (
+                <button
+                  onClick={() => setShowReturn(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-sm font-medium rounded-xl transition-colors cursor-pointer"
+                >
+                  <RotateCcw size={14} /> {t("transactions.returnItems")}
+                </button>
+              )}
 
               {canVoid && (
                 <button
@@ -221,6 +425,15 @@ function TransactionDetail({
                 </button>
               )}
             </div>
+
+            {showReturn && detail && (
+              <ReturnModal
+                detail={detail}
+                user={user}
+                onClose={() => setShowReturn(false)}
+                onReturned={() => { onVoided(); setShowReturn(false); }}
+              />
+            )}
           </>
         )}
       </div>
@@ -252,6 +465,99 @@ function PillGroup<T extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+// ── Transaction card ───────────────────────────────────────────────────────────
+function TransactionCard({
+  sale, index, onSelect, fmt, t,
+}: {
+  sale:     Sale;
+  index:    number;
+  onSelect: (id: number) => void;
+  fmt:      (n: number) => string;
+  t:        ReturnType<typeof useTranslation>["t"];
+}) {
+  const Icon      = PAY_ICON[sale.payment_method] ?? Banknote;
+  const isVoid    = sale.status === "void";
+  const isPending = sale.status === "pending";
+
+  const accentColor = isVoid
+    ? "bg-red-500/60"
+    : isPending
+      ? "bg-amber-400/70"
+      : "bg-emerald-500/70";
+
+  const badgeStyle = isVoid
+    ? "bg-red-500/10 text-red-400 border-red-500/20"
+    : isPending
+      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+      : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+
+  const badgeLabel = isVoid
+    ? t("transactions.status.void")
+    : isPending
+      ? t("transactions.status.pending")
+      : t("transactions.status.completed");
+
+  return (
+    <motion.button
+      layout
+      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.18), ease: "easeOut" }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.985 }}
+      onClick={() => onSelect(sale.id)}
+      className="relative flex flex-col gap-3 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-2xl overflow-hidden hover:border-[var(--bd-strong)] hover:bg-[var(--bg-card)]/30 transition-colors cursor-pointer text-start group p-4"
+    >
+      {/* Status accent stripe (top edge) */}
+      <div className={`absolute top-0 inset-x-0 h-1 ${accentColor}`} />
+
+      {/* Top row: icon + badge */}
+      <div className="flex items-center justify-between">
+        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 transition-colors ${
+          isVoid ? "bg-[var(--bg-card)] border-[var(--bd-base)]" : "bg-[var(--bg-card)] border-[var(--bd-base)] group-hover:border-[var(--bd-strong)]"
+        }`}>
+          <Icon size={15} className={isVoid ? "text-slate-700" : "text-slate-400"} />
+        </div>
+        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${badgeStyle}`}>
+          {badgeLabel}
+        </span>
+      </div>
+
+      {/* Sale id + customer */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`font-bold text-sm ${isVoid ? "text-slate-600" : "text-[var(--tx-base)]"}`}>
+            #{sale.id}
+          </span>
+          {sale.customer_name && (
+            <span className="flex items-center gap-1 text-[#14B8A6] text-xs min-w-0 truncate">
+              <UserCircle size={11} className="flex-shrink-0" />
+              <span className="truncate">{sale.customer_name}</span>
+            </span>
+          )}
+        </div>
+        <p className="text-slate-500 text-xs mt-0.5 capitalize truncate">
+          {new Date(sale.created_at).toLocaleString()} · {sale.payment_method}
+        </p>
+      </div>
+
+      {/* Amount footer */}
+      <div className="flex items-end justify-between pt-2 mt-auto border-t border-[var(--bd-base)]">
+        <div>
+          <div className={`font-bold text-lg tabular-nums leading-tight ${isVoid ? "text-slate-600 line-through" : "text-[#14B8A6]"}`}>
+            {fmt(sale.total_amount)}
+          </div>
+          {sale.discount > 0 && (
+            <div className="text-emerald-400 text-[11px] tabular-nums">−{fmt(sale.discount)}</div>
+          )}
+        </div>
+        <ChevronRight size={14} className="text-slate-700 group-hover:text-slate-400 transition-colors flex-shrink-0 mb-0.5" />
+      </div>
+    </motion.button>
   );
 }
 
@@ -383,8 +689,8 @@ export default function TransactionsScreen({ user }: Props) {
         </div>
       </div>
 
-      {/* ── List ────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+      {/* ── Grid ────────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto px-4 py-3">
         {loading && sales.length === 0 ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-[#14B8A6]/30 border-t-[#14B8A6] rounded-full animate-spin" />
@@ -396,81 +702,20 @@ export default function TransactionsScreen({ user }: Props) {
           </div>
         ) : (
           <>
-            {sales.map(sale => {
-              const Icon      = PAY_ICON[sale.payment_method] ?? Banknote;
-              const isVoid    = sale.status === "void";
-              const isPending = sale.status === "pending";
-
-              const accentColor = isVoid
-                ? "bg-red-500/60"
-                : isPending
-                  ? "bg-amber-400/70"
-                  : "bg-emerald-500/70";
-
-              const badgeStyle = isVoid
-                ? "bg-red-500/10 text-red-400 border-red-500/20"
-                : isPending
-                  ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                  : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-
-              const badgeLabel = isVoid
-                ? t("transactions.status.void")
-                : isPending
-                  ? t("transactions.status.pending")
-                  : t("transactions.status.completed");
-
-              return (
-                <button
-                  key={sale.id}
-                  onClick={() => setSelected(sale.id)}
-                  className="w-full flex items-stretch gap-0 bg-[var(--bg-base)] border border-[var(--bd-base)] rounded-xl overflow-hidden hover:border-[var(--bd-strong)] hover:shadow-lg hover:shadow-black/20 transition-all cursor-pointer text-start group"
-                >
-                  {/* Status accent stripe */}
-                  <div className={`w-1 flex-shrink-0 ${accentColor}`} />
-
-                  <div className="flex items-center gap-3 px-4 py-3.5 flex-1 min-w-0">
-                    {/* Payment icon */}
-                    <div className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 transition-colors ${
-                      isVoid ? "bg-[var(--bg-card)] border-[var(--bd-base)]" : "bg-[var(--bg-card)] border-[var(--bd-base)] group-hover:border-[var(--bd-strong)]"
-                    }`}>
-                      <Icon size={15} className={isVoid ? "text-slate-700" : "text-slate-400"} />
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`font-bold text-sm ${isVoid ? "text-slate-600" : "text-[var(--tx-base)]"}`}>
-                          #{sale.id}
-                        </span>
-                        {sale.customer_name && (
-                          <span className="flex items-center gap-1 text-[#14B8A6] text-xs">
-                            <UserCircle size={11} /> {sale.customer_name}
-                          </span>
-                        )}
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${badgeStyle}`}>
-                          {badgeLabel}
-                        </span>
-                      </div>
-                      <p className="text-slate-500 text-xs mt-0.5 capitalize">
-                        {new Date(sale.created_at).toLocaleString()} · {sale.payment_method}
-                      </p>
-                    </div>
-
-                    {/* Amount */}
-                    <div className="text-end flex-shrink-0">
-                      <div className={`font-bold text-base tabular-nums ${isVoid ? "text-slate-600 line-through" : "text-[#14B8A6]"}`}>
-                        {fmt(sale.total_amount)}
-                      </div>
-                      {sale.discount > 0 && (
-                        <div className="text-emerald-400 text-[11px] tabular-nums">−{fmt(sale.discount)}</div>
-                      )}
-                    </div>
-
-                    <ChevronRight size={14} className="text-slate-700 group-hover:text-slate-400 transition-colors flex-shrink-0" />
-                  </div>
-                </button>
-              );
-            })}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              <AnimatePresence initial={false} mode="popLayout">
+                {sales.map((sale, idx) => (
+                  <TransactionCard
+                    key={sale.id}
+                    sale={sale}
+                    index={idx}
+                    onSelect={setSelected}
+                    fmt={fmt}
+                    t={t}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
 
             {hasMore && (
               <div className="flex justify-center py-4">

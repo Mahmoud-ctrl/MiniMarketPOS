@@ -70,8 +70,7 @@ ${p.storePhone ? `<div class="c" style="font-size:11px">${p.storePhone}</div>` :
       <span style="font-size:11px;font-weight:normal;color:#555">${p.fmtAlt(p.total)}</span></td></tr>
   <tr><td style="font-size:11px;color:#555;text-transform:capitalize;padding-top:4px">${p.payMethod}</td><td></td>
       <td style="text-align:right;font-size:11px;color:#555">
-        ${p.paidPrimary ? `${p.symbol} ${p.paidPrimary}` : ""}
-        ${p.paidSecondary ? ` + ${p.altSymbol} ${p.paidSecondary}` : ""}
+        ${[p.paidPrimary ? `${p.symbol} ${p.paidPrimary}` : "", p.paidSecondary ? `${p.altSymbol} ${p.paidSecondary}` : ""].filter(Boolean).join(" + ")}
       </td></tr>
   ${changeRow}
 </table>

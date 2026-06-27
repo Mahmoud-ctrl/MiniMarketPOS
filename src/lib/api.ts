@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { CashierStatsRow, CashSession, Category, Customer, CustomerLedgerEntry, CustomerWithBalance, DailySalesRow, DailyWasteRow, PerishableAlert, PriceTier, Product, ProductStock, Purchase, PurchaseWithItems, Sale, SaleWithItems, SalesSummary, Setting, Supplier, TopCustomerRow, TopProductRow, TopWasterRow, User, WasteSummary } from "../types";
+import { CashierStatsRow, CashSession, Category, Customer, CustomerLedgerEntry, CustomerWithBalance, DailySalesRow, DailyWasteRow, NoSaleEvent, PerishableAlert, PriceHistoryEntry, PriceTier, Product, ProductStock, Promotion, Purchase, PurchaseWithItems, Sale, SaleReturn, SaleReturnItem, SaleWithItems, SalesSummary, Setting, Supplier, TopCustomerRow, TopProductRow, TopWasterRow, User, WasteSummary } from "../types";
 
 interface LoginResult { user: User }
 
@@ -22,14 +22,16 @@ export const api = {
     search?: string;
     category_id?: number;
     supplier_id?: number;
+    favorites_only?: boolean;
     limit?: number;
     offset?: number;
   }) => invoke<Product[]>("get_products", {
-    search:      params?.search      ?? null,
-    categoryId:  params?.category_id ?? null,
-    supplierId:  params?.supplier_id ?? null,
-    limit:       params?.limit       ?? null,
-    offset:      params?.offset      ?? null,
+    search:         params?.search         ?? null,
+    categoryId:     params?.category_id    ?? null,
+    supplierId:     params?.supplier_id    ?? null,
+    favoritesOnly:  params?.favorites_only ?? null,
+    limit:          params?.limit          ?? null,
+    offset:         params?.offset         ?? null,
   }),
 
   getProductByBarcode: (barcode: string) =>
@@ -59,6 +61,8 @@ export const api = {
     expiry_date?: string | null;
     is_perishable?: boolean;
     default_shelf_life_days?: number | null;
+    is_variable_price?: boolean;
+    is_favorite?: boolean;
   }) => invoke<Product>("create_product", { payload }),
 
   updateProduct: (id: number, payload: {
@@ -82,7 +86,12 @@ export const api = {
     expiry_date?: string | null;
     is_perishable?: boolean;
     default_shelf_life_days?: number | null;
-  }) => invoke<Product>("update_product", { id, payload }),
+    is_variable_price?: boolean;
+    is_favorite?: boolean;
+  }, changedBy?: number | null) => invoke<Product>("update_product", { id, payload, changedBy: changedBy ?? null }),
+
+  getPriceHistory: (productId: number, limit?: number) =>
+    invoke<PriceHistoryEntry[]>("get_price_history", { productId, limit: limit ?? null }),
 
   toggleProductFrozen: (id: number) =>
     invoke<Product>("toggle_product_frozen", { id }),
@@ -168,6 +177,9 @@ export const api = {
     amount_paid: number;
     payment_method?: "cash" | "card" | "wallet" | "credit";
     notes?: string;
+    paid_primary?: number;
+    paid_secondary?: number;
+    exchange_rate_snapshot?: number;
   }) => invoke<Sale>("create_sale", { payload }),
 
   getSales: (params?: {
@@ -309,4 +321,32 @@ export const api = {
     notes:      args.notes     ?? null,
     createdBy:  args.createdBy,
   }),
+
+  // ── No-sale log ───────────────────────────────────────────────
+  logNoSale: (cashierId: number, sessionId: number | null, notes?: string | null) =>
+    invoke<NoSaleEvent>("log_no_sale", { cashierId, sessionId: sessionId ?? null, notes: notes ?? null }),
+
+  // ── Promotions (BOGO) ─────────────────────────────────────────
+  getPromotions: () =>
+    invoke<Promotion[]>("get_promotions"),
+
+  createPromotion: (payload: { name: string; product_id: number; buy_qty: number; get_qty: number }) =>
+    invoke<Promotion>("create_promotion", { payload }),
+
+  togglePromotion: (id: number) =>
+    invoke<Promotion>("toggle_promotion", { id }),
+
+  deletePromotion: (id: number) =>
+    invoke<void>("delete_promotion", { id }),
+
+  // ── Partial returns ───────────────────────────────────────────
+  createPartialReturn: (payload: {
+    original_sale_id: number;
+    cashier_id: number;
+    items: { sale_item_id: number; quantity: number; is_resellable: boolean }[];
+    notes?: string | null;
+  }) => invoke<SaleReturn>("create_partial_return", { payload }),
+
+  getSaleReturnItems: (saleId: number) =>
+    invoke<SaleReturnItem[]>("get_sale_return_items", { saleId }),
 };

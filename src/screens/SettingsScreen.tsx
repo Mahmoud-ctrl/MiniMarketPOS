@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, ChevronRight, DollarSign, Globe, Pencil, Plus, Store, Tag, Trash2, Truck, Upload, User as UserIcon, Users } from "lucide-react";
+import { Check, ChevronRight, DollarSign, Globe, Keyboard, Pencil, Plus, Store, Tag, Trash2, Truck, Upload, User as UserIcon, Users } from "lucide-react";
 import { api } from "../lib/api";
 import { Category, Supplier, User } from "../types";
 import { groupCategories } from "../lib/categories";
@@ -10,7 +10,7 @@ import Modal from "../components/Modal";
 
 interface Props { user: User }
 
-type Tab = "store" | "users" | "categories" | "suppliers" | "currency" | "language";
+type Tab = "store" | "users" | "categories" | "suppliers" | "currency" | "language" | "shortcuts";
 
 const iCls   = "w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--bd-base)] focus:border-[#14B8A6]/50 focus:outline-none rounded-xl text-[var(--tx-base)] text-sm placeholder-slate-600 transition-colors";
 const selCls = iCls + " cursor-pointer";
@@ -780,6 +780,73 @@ function LanguageTab() {
   );
 }
 
+// ── Shortcuts reference tab ────────────────────────────────────────────────────
+function ShortcutsTab() {
+  const { t } = useTranslation();
+
+  const KBD = ({ k }: { k: string }) => (
+    <kbd className="inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-lg border border-[var(--bd-strong)] bg-[var(--bg-raised)] text-[var(--tx-base)] text-[11px] font-mono font-semibold shadow-sm">
+      {k}
+    </kbd>
+  );
+
+  const Row = ({ keys, alt, desc }: { keys: string[]; alt?: string; desc: string }) => (
+    <div className="flex items-center gap-4 px-4 py-3 border-b border-[var(--bd-base)] last:border-b-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0 w-44">
+        {keys.map(k => <KBD key={k} k={k} />)}
+        {alt && (
+          <>
+            <span className="text-slate-600 text-xs mx-0.5">or</span>
+            <KBD k={alt} />
+          </>
+        )}
+      </div>
+      <span className="text-slate-400 text-sm">{desc}</span>
+    </div>
+  );
+
+  const Section = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div>
+      <h3 className="flex items-center gap-2 text-[var(--tx-base)] font-semibold text-sm mb-2">
+        <span className="w-2 h-2 rounded-full bg-[#14B8A6] flex-shrink-0" />
+        {label}
+      </h3>
+      <div className="bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl overflow-hidden">
+        {children}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="max-w-2xl">
+      <p className="text-slate-500 text-xs mb-6">{t("shortcutsRef.subtitle")}</p>
+      <div className="space-y-6">
+        <Section label={t("shortcutsRef.posScreen")}>
+          <Row keys={["F2"]}         desc={t("shortcutsRef.focusSearch")} />
+          <Row keys={["F3"]}         desc={t("shortcutsRef.noSale")} />
+          <Row keys={["Enter"]}      desc={t("shortcutsRef.barcodeSearch")} />
+          <Row keys={["A–Z"]}        desc={t("shortcutsRef.jumpToSearch")} />
+        </Section>
+
+        <Section label={t("shortcutsRef.cartSection")}>
+          <Row keys={["F5"]}         desc={t("shortcutsRef.openCheckout")} />
+          <Row keys={["F6"]}         desc={t("shortcutsRef.quickPay")} />
+          <Row keys={["F8"]}  alt="Ctrl+N" desc={t("shortcutsRef.newTab")} />
+          <Row keys={["F9"]}         desc={t("shortcutsRef.holdTab")} />
+          <Row keys={["Delete"]}     desc={t("shortcutsRef.clearCart")} />
+          <Row keys={["←", "→"]}    desc={t("shortcutsRef.navigateTabs")} />
+        </Section>
+
+        <Section label={t("shortcutsRef.checkoutSection")}>
+          <Row keys={["Enter"]}      desc={t("shortcutsRef.confirmPay")} />
+          <Row keys={["F6"]}         desc={t("shortcutsRef.confirmPrint")} />
+          <Row keys={["Escape"]}     desc={t("shortcutsRef.closeModal")} />
+        </Section>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 const TABS: { id: Tab; labelKey: string; icon: typeof UserIcon }[] = [
   { id: "store",      labelKey: "settings.tabs.store",      icon: Store        },
@@ -788,6 +855,7 @@ const TABS: { id: Tab; labelKey: string; icon: typeof UserIcon }[] = [
   { id: "suppliers",  labelKey: "settings.tabs.suppliers",  icon: Truck        },
   { id: "currency",   labelKey: "settings.tabs.currency",   icon: DollarSign   },
   { id: "language",   labelKey: "settings.tabs.language",   icon: Globe        },
+  { id: "shortcuts",  labelKey: "settings.tabs.shortcuts",  icon: Keyboard     },
 ];
 
 export default function SettingsScreen({ user }: Props) {
@@ -823,6 +891,7 @@ export default function SettingsScreen({ user }: Props) {
         {tab === "suppliers"  && <SuppliersTab />}
         {tab === "currency"   && <CurrencyTab />}
         {tab === "language"   && <LanguageTab />}
+        {tab === "shortcuts"  && <ShortcutsTab />}
       </div>
     </div>
   );

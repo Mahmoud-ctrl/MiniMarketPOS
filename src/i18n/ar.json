@@ -39,7 +39,18 @@
     "noProductsFound": "لا توجد منتجات",
     "all": "الكل",
     "products": "{{count}} منتج",
-    "noSession": "لا توجد جلسة مفتوحة"
+    "noSession": "لا توجد جلسة مفتوحة",
+    "noSale": "بلا بيع",
+    "noSaleLogged": "تم تسجيل فتح الدرج",
+    "favorites": "المفضلة",
+    "variablePrice": "أدخل السعر",
+    "variablePriceHint": "حدد سعر البيع لهذا المنتج",
+    "enterAmount": "أدخل المبلغ",
+    "confirm": "تأكيد",
+    "cancel": "إلغاء",
+    "allItems": "جميع المنتجات",
+    "categories": "التصنيفات",
+    "categoryCount": "{{count}} فئة"
   },
   "inventory": {
     "title": "المخزون",
@@ -186,7 +197,8 @@
       "categories": "الفئات",
       "suppliers": "الموردون",
       "currency": "العملة",
-      "language": "اللغة"
+      "language": "اللغة",
+      "shortcuts": "الاختصارات"
     },
     "language": {
       "title": "اللغة والاتجاه",
@@ -321,7 +333,46 @@
     "orderNav": "{{current}} / {{total}} · ← → للتنقل · Ctrl+N جديد",
     "orderDone": "منتهي",
     "closeOrder": "إغلاق هذا الطلب",
-    "newOrder": "طلب جديد (Ctrl+N)"
+    "newOrder": "طلب جديد (Ctrl+N)",
+    "hold": "إيقاف مؤقت",
+    "unhold": "استئناف",
+    "heldBadge": "موقوف",
+    "merge": "دمج",
+    "mergeFrom": "دمج من طلب",
+    "moveTo": "نقل إلى طلب",
+    "freeItem": "مجاني",
+    "packMode": "علبة",
+    "pieceMode": "قطعة",
+    "quickPay": "دفع سريع",
+    "orderNav": "{{current}} / {{total}} · ← → للتنقل · Ctrl+N/F8 جديد · F9 إيقاف"
+  },
+  "shortcuts": {
+    "search": "بحث",
+    "noSale": "بدون بيع",
+    "checkout": "دفع",
+    "quickPay": "دفع+طباعة",
+    "newTab": "طلب جديد",
+    "hold": "إيقاف",
+    "clear": "مسح"
+  },
+  "shortcutsRef": {
+    "subtitle": "للمرجعية فقط — لا يمكن إعادة تعيين المفاتيح.",
+    "posScreen": "شاشة البيع",
+    "cartSection": "السلة",
+    "checkoutSection": "نافذة الدفع",
+    "focusSearch": "التركيز على مربع البحث",
+    "noSale": "بدون بيع / فتح الدرج",
+    "barcodeSearch": "بحث بالباركود (اكتب ثم Enter)",
+    "jumpToSearch": "أي حرف ينقل للبحث تلقائياً",
+    "openCheckout": "فتح نافذة الدفع",
+    "quickPay": "دفع نقدي سريع + طباعة فورية",
+    "newTab": "طلب جديد",
+    "holdTab": "إيقاف مؤقت للطلب الحالي",
+    "clearCart": "مسح جميع العناصر",
+    "navigateTabs": "التنقل بين الطلبات",
+    "confirmPay": "تأكيد الدفع (بدون طباعة)",
+    "confirmPrint": "تأكيد الدفع + طباعة",
+    "closeModal": "إغلاق / إلغاء"
   },
   "purchases": {
     "title": "المشتريات",
@@ -470,12 +521,32 @@
       "wallet": "محفظة",
       "credit": "ائتمان"
     },
+    "returnItems": "إرجاع بضاعة",
     "detail": {
       "discount": "الخصم",
       "tva": "الضريبة",
       "total": "الإجمالي",
       "paid": "المدفوع",
       "change": "الباقي"
+    },
+    "return": {
+      "title": "إرجاع بضاعة — فاتورة #{{id}}",
+      "itemsLabel": "اختر العناصر المراد إرجاعها",
+      "soldQty": "مباع: {{qty}}",
+      "returnedQty": "مُرجع: {{qty}}",
+      "alreadyReturned": "تم الإرجاع",
+      "condition": "الحالة:",
+      "resellable": "قابل للبيع",
+      "damaged": "تالف",
+      "all": "الكل",
+      "refundTotal": "إجمالي الاسترداد",
+      "submit": "تأكيد الإرجاع",
+      "success": "تم معالجة الإرجاع بنجاح"
     }
+  },
+  "common": {
+    "close": "إغلاق",
+    "cancel": "إلغاء",
+    "loading": "جاري التحميل…"
   }
 }

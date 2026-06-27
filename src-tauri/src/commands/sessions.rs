@@ -1,6 +1,6 @@
 use tauri::State;
 
-use crate::{db::AppState, error::AppError, models::CashSession};
+use crate::{db::AppState, error::AppError, models::{CashSession, NoSaleEvent}};
 
 #[tauri::command]
 pub async fn open_cash_session(
@@ -102,4 +102,26 @@ pub async fn get_sessions(
     .await?;
 
     Ok(sessions)
+}
+
+#[tauri::command]
+pub async fn log_no_sale(
+    state:      State<'_, AppState>,
+    cashier_id: i64,
+    session_id: Option<i64>,
+    notes:      Option<String>,
+) -> Result<NoSaleEvent, AppError> {
+    let event = sqlx::query_as::<_, NoSaleEvent>(
+        r#"
+        INSERT INTO no_sale_events (cashier_id, session_id, notes)
+        VALUES ($1, $2, $3)
+        RETURNING *
+        "#,
+    )
+    .bind(cashier_id)
+    .bind(session_id)
+    .bind(notes.as_deref())
+    .fetch_one(&state.db)
+    .await?;
+    Ok(event)
 }

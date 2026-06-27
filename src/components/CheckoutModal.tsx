@@ -5,7 +5,7 @@ import { Customer, Sale } from "../types";
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
 
-type PayMode = "full" | "partial" | "debt";
+type PayMode = "full" | "partial" | "debt" | "split";
 
 export interface SaleCompleteData {
   sale:          Sale;
@@ -31,7 +31,7 @@ const NUMPAD_KEYS = [
 
 export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleComplete }: Props) {
   const { baseCurrency, exchangeRate, symbol, altSymbol, fmt, fmtAlt, fromDb, toDb, inputDecimals } = useCurrency();
-  const { items, discount, subtotal, tva } = useCart();
+  const { items, promoItems, discount, subtotal, tva } = useCart();
 
   const [mode,        setMode]       = useState<PayMode>("full");
   const [tendered,    setTendered]   = useState("");
@@ -40,8 +40,11 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
   const [query,       setQuery]      = useState("");
   const [suggestions, setSugg]       = useState<Customer[]>([]);
   const [showSugg,    setShowSugg]   = useState(false);
-  const [processing,  setProcessing] = useState(false);
-  const [error,       setError]      = useState<string | null>(null);
+  const [processing,     setProcessing]    = useState(false);
+  const [error,          setError]         = useState<string | null>(null);
+  const [splitPrimary,   setSplitPrimary]  = useState("");
+  const [splitSecondary, setSplitSecondary] = useState("");
+  const [splitActive,    setSplitActive]   = useState<"primary" | "secondary">("primary");
   const suggRef = useRef<HTMLDivElement>(null);
 
   const isUSD = baseCurrency === "USD";
@@ -73,14 +76,43 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
     ? total
     : mode === "partial" ? Math.max(0, total - tenderedCents) : 0;
 
+  // ── Split totals ─────────────────────────────────────────────────────────────
+  const splitCurrentDecimals = splitActive === "primary" ? inputDecimals : altDecimals;
+  const splitPrimaryCents    = toDb(splitPrimary);
+  const splitSecCents        = altToDb(splitSecondary);
+  const splitTotal           = splitPrimaryCents + splitSecCents;
+  const splitChange          = Math.max(0, splitTotal - total);
+
   const canConfirm =
     items.length > 0 && !processing &&
     (mode === "full"
       ? tenderedCents >= total
+      : mode === "split"
+      ? splitTotal >= total
       : customer !== null && (mode === "debt" || (tenderedCents > 0 && tenderedCents < total)));
 
   // ── Numpad ──────────────────────────────────────────────────────────────────
   const appendKey = useCallback((key: string) => {
+    if (mode === "split") {
+      const decimals = splitActive === "primary" ? inputDecimals : altDecimals;
+      const setter   = splitActive === "primary" ? setSplitPrimary : setSplitSecondary;
+      setter(prev => {
+        if (key === "⌫") return prev.slice(0, -1);
+        if (key === ".") {
+          if (decimals === 0 || prev.includes(".")) return prev;
+          return (prev === "" ? "0" : prev) + ".";
+        }
+        if (key === "00" || key === "000") {
+          if (prev === "" || prev === "0") return "0";
+          return prev + key;
+        }
+        if (prev === "0") return key;
+        const dotIdx = prev.indexOf(".");
+        if (dotIdx >= 0 && prev.length - dotIdx - 1 >= decimals) return prev;
+        return prev + key;
+      });
+      return;
+    }
     setTendered(prev => {
       if (key === "⌫") return prev.slice(0, -1);
       if (key === ".") {
@@ -96,12 +128,19 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
       if (dotIdx >= 0 && prev.length - dotIdx - 1 >= activeDecimals) return prev;
       return prev + key;
     });
-  }, [activeDecimals]);
+  }, [mode, splitActive, inputDecimals, altDecimals, activeDecimals]);
 
-  const setExact = useCallback(
-    () => setTendered(activeFromDb(total)),
-    [activeFromDb, total],
-  );
+  const setExact = useCallback(() => {
+    if (mode === "split") {
+      if (splitActive === "primary") {
+        setSplitPrimary(fromDb(Math.max(0, total - splitSecCents)));
+      } else {
+        setSplitSecondary(altFromDb(Math.max(0, total - splitPrimaryCents)));
+      }
+      return;
+    }
+    setTendered(activeFromDb(total));
+  }, [mode, splitActive, total, splitSecCents, splitPrimaryCents, fromDb, altFromDb, activeFromDb]);
 
   const switchCurrency = (toAlt: boolean) => {
     setUseAlt(toAlt);
@@ -132,32 +171,84 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
     setProcessing(true);
     setError(null);
     try {
-      const amountPaid = mode === "debt" ? 0 : tenderedCents;
-      const sale = await api.createSale({
-        session_id:     sessionId ?? undefined,
-        cashier_id:     cashierId,
-        customer_id:    customer?.id,
-        items: items.map(i => ({
+      // ── Amounts ──────────────────────────────────────────────────────────────
+      let amountPaid:      number;
+      let paidPrimaryDb:   number;
+      let paidSecondaryDb: number;
+
+      if (mode === "split") {
+        amountPaid      = splitTotal;
+        paidPrimaryDb   = splitPrimaryCents;
+        paidSecondaryDb = Math.round(parseFloat(splitSecondary || "0"));
+      } else if (mode === "debt") {
+        amountPaid = paidPrimaryDb = paidSecondaryDb = 0;
+      } else {
+        amountPaid      = tenderedCents;
+        paidPrimaryDb   = useAlt ? 0 : amountPaid;
+        paidSecondaryDb = useAlt ? Math.round(parseFloat(tendered || "0")) : 0;
+      }
+
+      // Convert cart lines to base units for stock accuracy (1 pack = packaging_qty pieces)
+      const saleItems = [
+        ...items.map(i => ({
           product_id: i.product.id,
-          quantity:   i.quantity,
-          unit_price: i.unit_price,
+          quantity:   i.quantity * i.unit_multiplier,
+          unit_price: i.unit_multiplier > 1
+            ? Math.round(i.unit_price / i.unit_multiplier)
+            : i.unit_price,
           unit_cost:  i.product.cost_price,
           price_tier: i.price_tier,
           discount:   i.discount * i.quantity,
           tva_amount: i.product.apply_tva
             ? Math.round(i.unit_price * i.quantity * i.product.tva_rate) : 0,
         })),
+        // BOGO promo lines: full-price unit_price with 100% discount → net 0
+        ...promoItems.map(i => ({
+          product_id: i.product.id,
+          quantity:   i.quantity * i.unit_multiplier,
+          unit_price: i.unit_multiplier > 1
+            ? Math.round(i.unit_price / i.unit_multiplier)
+            : i.unit_price,
+          unit_cost:  i.product.cost_price,
+          price_tier: i.price_tier,
+          discount:   i.unit_price * i.quantity,
+          tva_amount: 0,
+        })),
+      ];
+
+      const sale = await api.createSale({
+        session_id:             sessionId ?? undefined,
+        cashier_id:             cashierId,
+        customer_id:            customer?.id,
+        items:                  saleItems,
         discount,
-        amount_paid:    amountPaid,
-        payment_method: mode === "full" ? "cash" : "credit",
+        amount_paid:            amountPaid,
+        payment_method:         mode === "full" || mode === "split" ? "cash" : "credit",
+        paid_primary:           paidPrimaryDb,
+        paid_secondary:         paidSecondaryDb,
+        exchange_rate_snapshot: Math.round(exchangeRate),
       });
 
-      const paidPrimary = amountPaid > 0
-        ? (useAlt ? `${altSymbol} ${tendered}` : fmt(amountPaid))
-        : "";
-      const paidSecondary = amountPaid > 0
-        ? (useAlt ? fmt(amountPaid) : fmtAlt(amountPaid))
-        : "";
+      // ── Receipt strings — bare numbers; receipt.ts prepends the symbols ──────
+      let paidPrimary:   string;
+      let paidSecondary: string;
+
+      if (mode === "split") {
+        paidPrimary   = splitPrimary;
+        paidSecondary = splitSecondary
+          ? parseInt(splitSecondary).toLocaleString("en-US")
+          : "";
+      } else if (amountPaid === 0) {
+        paidPrimary = paidSecondary = "";
+      } else if (useAlt) {
+        paidPrimary   = "";
+        paidSecondary = altDecimals === 0
+          ? parseInt(tendered || "0").toLocaleString("en-US")
+          : (tendered || "");
+      } else {
+        paidPrimary   = fromDb(amountPaid);
+        paidSecondary = "";
+      }
 
       if (shouldPrint) window.print();
 
@@ -166,7 +257,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
         amountPaid,
         paidPrimary,
         paidSecondary,
-        method: mode === "full" ? "cash" : "credit",
+        method: mode === "full" || mode === "split" ? "cash" : "credit",
       });
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? "Sale failed. Please try again.");
@@ -174,6 +265,35 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
       setProcessing(false);
     }
   };
+
+  // Keyboard shortcuts — refs prevent stale closures without needing deps
+  const handleConfirmRef = useRef(handleConfirm);
+  handleConfirmRef.current = handleConfirm;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const canConfirmRef = useRef(canConfirm);
+  canConfirmRef.current = canConfirm;
+  const processingRef = useRef(processing);
+  processingRef.current = processing;
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.preventDefault(); onCloseRef.current(); return; }
+      const el = document.activeElement;
+      const inField = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLButtonElement;
+      if (inField) return;
+      if ((e.key === "Enter") && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        e.preventDefault();
+        if (canConfirmRef.current && !processingRef.current) handleConfirmRef.current(false);
+      }
+      if (e.key === "F6") {
+        e.preventDefault();
+        if (canConfirmRef.current && !processingRef.current) handleConfirmRef.current(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const selectCustomer = (c: Customer) => { setCustomer(c); setQuery(""); setShowSugg(false); };
 
@@ -234,14 +354,28 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
               {items.map(item => (
-                <div key={item.product.id} className="flex items-start gap-3">
+                <div key={item.lineId} className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="text-[var(--tx-base)] text-sm font-medium leading-snug truncate">{item.product.name}</div>
-                    <div className="text-slate-500 text-xs mt-0.5 tabular-nums">{fmt(item.unit_price)} × {item.quantity}</div>
+                    <div className="text-slate-500 text-xs mt-0.5 tabular-nums">
+                      {fmt(item.unit_price)} × {item.quantity}
+                      {item.unit_multiplier > 1 && (
+                        <span className="text-indigo-400 ms-1">(×{item.unit_multiplier})</span>
+                      )}
+                    </div>
                   </div>
                   <div className="text-[var(--tx-base)] text-sm font-semibold tabular-nums flex-shrink-0">
                     {fmt(item.unit_price * item.quantity)}
                   </div>
+                </div>
+              ))}
+              {promoItems.map(item => (
+                <div key={item.lineId} className="flex items-start gap-3 opacity-70">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-emerald-400 text-sm font-medium leading-snug truncate">{item.product.name}</div>
+                    <div className="text-emerald-400/60 text-xs mt-0.5">{item.promo_name} · ×{item.quantity}</div>
+                  </div>
+                  <div className="text-emerald-400 text-xs font-bold tabular-nums flex-shrink-0">FREE</div>
                 </div>
               ))}
             </div>
@@ -273,7 +407,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
           <div className="flex-1 flex flex-col gap-5 p-6 overflow-y-auto">
 
             {/* Mode tabs */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className={`grid ${isUSD && exchangeRate > 0 ? "grid-cols-4" : "grid-cols-3"} gap-3`}>
               {(["full", "partial", "debt"] as const).map(m => (
                 <button
                   key={m}
@@ -284,9 +418,28 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                       : "bg-[var(--bg-base)] border-[var(--bd-base)] text-slate-400 hover:border-[var(--bd-strong)] hover:text-slate-300"
                   }`}
                 >
-                  {m === "full" ? "Full Payment" : m === "partial" ? "Partial" : "Full Debt"}
+                  {m === "full" ? "Full" : m === "partial" ? "Partial" : "Debt"}
                 </button>
               ))}
+              {isUSD && exchangeRate > 0 && (
+                <button
+                  onClick={() => {
+                    setMode("split");
+                    setTendered("");
+                    setSplitPrimary("");
+                    setSplitSecondary("");
+                    setSplitActive("primary");
+                    setError(null);
+                  }}
+                  className={`py-3.5 rounded-xl font-semibold text-sm border transition-all cursor-pointer ${
+                    mode === "split"
+                      ? "bg-[#14B8A6]/15 border-[#14B8A6]/50 text-[#14B8A6]"
+                      : "bg-[var(--bg-base)] border-[var(--bd-base)] text-slate-400 hover:border-[var(--bd-strong)] hover:text-slate-300"
+                  }`}
+                >
+                  Split
+                </button>
+              )}
             </div>
 
             {/* Customer — required for partial / debt */}
@@ -342,8 +495,8 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
               </div>
             )}
 
-            {/* Numpad (Full + Partial) */}
-            {mode !== "debt" && (
+            {/* Numpad — single-currency (Full + Partial) */}
+            {(mode === "full" || mode === "partial") && (
               <div className="flex gap-4">
                 <div className="flex-1 flex flex-col gap-3">
 
@@ -438,6 +591,112 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
               </div>
             )}
 
+            {/* Numpad — split currency (USD + LBP simultaneously) */}
+            {mode === "split" && (
+              <div className="flex gap-4">
+                <div className="flex-1 flex flex-col gap-3">
+
+                  {/* Currency input cards */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setSplitActive("primary")}
+                      className={`flex flex-col p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                        splitActive === "primary"
+                          ? "border-[#14B8A6]/60 bg-[#14B8A6]/10 ring-1 ring-[#14B8A6]/30"
+                          : "border-[var(--bd-base)] bg-[var(--bg-deep)] hover:border-[var(--bd-strong)]"
+                      }`}
+                    >
+                      <span className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">{symbol}</span>
+                      <span className={`text-lg font-bold tabular-nums ${splitActive === "primary" ? "text-[#14B8A6]" : "text-[var(--tx-base)]"}`}>
+                        {splitPrimary || <span className="text-slate-600 font-normal text-sm">—</span>}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setSplitActive("secondary")}
+                      className={`flex flex-col p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                        splitActive === "secondary"
+                          ? "border-[#14B8A6]/60 bg-[#14B8A6]/10 ring-1 ring-[#14B8A6]/30"
+                          : "border-[var(--bd-base)] bg-[var(--bg-deep)] hover:border-[var(--bd-strong)]"
+                      }`}
+                    >
+                      <span className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">{altSymbol}</span>
+                      <span className={`text-lg font-bold tabular-nums ${splitActive === "secondary" ? "text-[#14B8A6]" : "text-[var(--tx-base)]"}`}>
+                        {splitSecondary || <span className="text-slate-600 font-normal text-sm">—</span>}
+                      </span>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={setExact}
+                    className="w-full py-2.5 rounded-xl bg-[var(--bg-raised)] border border-[var(--bd-base)] hover:border-[#14B8A6]/50 text-slate-400 hover:text-[#14B8A6] text-sm font-semibold transition-colors cursor-pointer"
+                  >
+                    {splitActive === "primary"
+                      ? `Fill remaining — ${fmt(Math.max(0, total - splitSecCents))}`
+                      : `Fill remaining — ${fmtAlt(Math.max(0, total - splitPrimaryCents))}`}
+                  </button>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {(splitCurrentDecimals === 0
+                      ? [["7","8","9"],["4","5","6"],["1","2","3"],["00","0","⌫"]]
+                      : NUMPAD_KEYS
+                    ).flat().map((key, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => appendKey(key)}
+                        className={`h-14 rounded-xl text-lg font-semibold border transition-all active:scale-95 cursor-pointer ${
+                          key === "⌫"
+                            ? "bg-[var(--bg-raised)] border-[var(--bd-base)] text-red-400 hover:border-red-400/40 hover:bg-red-400/10"
+                            : "bg-[var(--bg-card)] border-[var(--bd-base)] text-[var(--tx-base)] hover:border-[#14B8A6]/40 hover:text-[#14B8A6]"
+                        }`}
+                      >
+                        {key === "⌫" ? <Delete size={18} className="mx-auto" /> : key}
+                      </button>
+                    ))}
+                  </div>
+                  {splitCurrentDecimals === 0 && (
+                    <button
+                      onClick={() => appendKey("000")}
+                      className="w-full h-12 rounded-xl text-lg font-semibold border bg-[var(--bg-card)] border-[var(--bd-base)] text-[var(--tx-base)] hover:border-[#14B8A6]/40 hover:text-[#14B8A6] transition-all active:scale-95 cursor-pointer"
+                    >
+                      000
+                    </button>
+                  )}
+                  <button
+                    onClick={() => splitActive === "primary" ? setSplitPrimary("") : setSplitSecondary("")}
+                    className="w-full h-11 rounded-xl text-sm font-bold border bg-red-500/10 border-red-500/25 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all active:scale-95 cursor-pointer tracking-widest"
+                  >
+                    AC
+                  </button>
+                </div>
+
+                <div className="w-44 flex flex-col justify-end gap-3">
+                  {(splitPrimary || splitSecondary) && (
+                    <div className="bg-[var(--bg-deep)] border border-[var(--bd-base)] rounded-xl p-3.5">
+                      <div className="text-slate-500 text-[10px] uppercase tracking-wider mb-2">Paid so far</div>
+                      {splitPrimary && <div className="text-[var(--tx-base)] text-sm font-semibold tabular-nums">{symbol} {splitPrimary}</div>}
+                      {splitSecondary && <div className="text-[var(--tx-base)] text-sm font-semibold tabular-nums">{altSymbol} {splitSecondary}</div>}
+                      {splitPrimary && splitSecondary && (
+                        <div className="text-slate-500 text-xs tabular-nums mt-1.5 border-t border-[var(--bd-faint)] pt-1.5">≈ {fmt(splitTotal)}</div>
+                      )}
+                    </div>
+                  )}
+                  {splitChange > 0 && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl p-4 text-center">
+                      <div className="text-emerald-400 text-[11px] uppercase tracking-wider mb-1.5">Change</div>
+                      <div className="text-emerald-400 font-bold text-2xl tabular-nums">{fmt(splitChange)}</div>
+                    </div>
+                  )}
+                  {splitTotal > 0 && splitTotal < total && (
+                    <div className="bg-red-500/10 border border-red-500/25 rounded-xl p-4 text-center">
+                      <div className="text-red-400 text-[11px] uppercase tracking-wider mb-1.5">Short by</div>
+                      <div className="text-red-400 font-bold text-2xl tabular-nums">{fmt(total - splitTotal)}</div>
+                      <div className="text-red-400/70 text-xs tabular-nums mt-1">{fmtAlt(total - splitTotal)}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Debt info card */}
             {mode === "debt" && (
               <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl p-6 text-center">
@@ -463,6 +722,7 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                   <Printer size={16} />
                 )}
                 Print
+                <kbd className="text-[9px] font-mono px-1 py-0.5 rounded border border-[var(--bd-base)] bg-[var(--bg-base)] text-slate-500 font-normal">F6</kbd>
               </button>
               <button
                 onClick={() => handleConfirm(false)}
@@ -475,10 +735,16 @@ export default function CheckoutModal({ cashierId, sessionId, onClose, onSaleCom
                   <>
                     <CheckCircle2 size={18} />
                     {mode === "full" && `Charge ${fmt(total)}`}
+                    {mode === "split" && (splitTotal >= total
+                      ? `Charge ${fmt(total)}`
+                      : splitTotal > 0
+                      ? `${fmt(total - splitTotal)} more needed`
+                      : "Enter split amounts")}
                     {mode === "partial" && tendered
                       ? `Pay ${fmt(tenderedCents)} · Debt ${fmt(debtAmount)}`
                       : mode === "partial" ? "Enter amount paid" : ""}
                     {mode === "debt" && `Record ${fmt(total)} as Debt`}
+                    <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-slate-900/20 bg-slate-900/15 text-slate-900/60 font-normal">↵</kbd>
                   </>
                 )}
               </button>

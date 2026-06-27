@@ -46,6 +46,8 @@ export interface Product {
   is_frozen: boolean;
   is_perishable: boolean;
   default_shelf_life_days: number | null;
+  is_variable_price: boolean;
+  is_favorite: boolean;
 }
 
 // Matches v_product_stock view — note product_id (not id) and extra stock fields
@@ -74,6 +76,8 @@ export interface ProductStock {
   is_frozen: boolean;
   is_perishable: boolean;
   default_shelf_life_days: number | null;
+  is_variable_price: boolean;
+  is_favorite: boolean;
   stock_qty: number;
   low_stock_flag: boolean;
 }
@@ -96,15 +100,77 @@ export interface PerishableAlert {
 export type PriceTier = "retail" | "wholesale" | "special";
 
 export interface CartItem {
-  product: Product;
-  quantity: number;
-  unit_price: number;
-  price_tier: PriceTier;
-  discount: number;
+  lineId:          number;   // unique per line in a tab
+  product:         Product;
+  quantity:        number;
+  unit_price:      number;   // price for this unit (pack price = piece_price * unit_multiplier)
+  price_tier:      PriceTier;
+  discount:        number;   // per-unit discount in cents
+  unit_multiplier: number;   // 1 = piece, packaging_qty = pack/case
+  unit_label:      string;   // display label ("pcs", "pack", …)
+}
+
+// ── No-sale events ────────────────────────────────────────────────────────────
+
+export interface NoSaleEvent {
+  id:         number;
+  cashier_id: number;
+  session_id: number | null;
+  notes:      string | null;
+  created_at: string;
+}
+
+// ── Promotions ─────────────────────────────────────────────────────────────────
+
+export interface Promotion {
+  id:         number;
+  name:       string;
+  product_id: number;
+  buy_qty:    number;
+  get_qty:    number;
+  is_active:  boolean;
+  created_at: string;
+}
+
+// ── Sale Returns ──────────────────────────────────────────────────────────────
+
+export interface SaleReturn {
+  id:               number;
+  original_sale_id: number;
+  cashier_id:       number;
+  total_refund:     number;
+  notes:            string | null;
+  created_at:       string;
+  items:            SaleReturnItem[];
+}
+
+export interface SaleReturnItem {
+  id:            number;
+  return_id:     number;
+  sale_item_id:  number;
+  product_id:    number;
+  quantity:      number;
+  unit_price:    number;
+  refund_amount: number;
+  is_resellable: boolean;
+  created_at:    string;
 }
 
 export interface AppError {
   message: string;
+}
+
+// ── Price History ─────────────────────────────────────────────────────────────
+
+export interface PriceHistoryEntry {
+  id:              number;
+  product_id:      number;
+  changed_by:      number | null;
+  changed_by_name: string | null;
+  changed_at:      string;
+  field_name:      "cost_price" | "sell_price_retail" | "sell_price_wholesale" | "sell_price_special";
+  old_value:       number | null;
+  new_value:       number;
 }
 
 // ── Purchases ─────────────────────────────────────────────────────────────────
@@ -156,6 +222,9 @@ export interface Sale {
   status: string;
   notes: string | null;
   created_at: string;
+  paid_primary: number;
+  paid_secondary: number;
+  exchange_rate_snapshot: number;
 }
 
 export interface SaleItem {

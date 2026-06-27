@@ -39,6 +39,7 @@ pub fn run() {
             commands::products::get_product_by_id,
             commands::products::create_product,
             commands::products::update_product,
+            commands::products::get_price_history,
             commands::products::toggle_product_frozen,
             commands::products::deactivate_product,
             // Categories
@@ -96,6 +97,16 @@ pub fn run() {
             // Settings
             commands::settings::get_settings,
             commands::settings::update_setting,
+            // No-sale log
+            commands::sessions::log_no_sale,
+            // Promotions (BOGO)
+            commands::promotions::get_promotions,
+            commands::promotions::create_promotion,
+            commands::promotions::toggle_promotion,
+            commands::promotions::delete_promotion,
+            // Partial returns
+            commands::returns::create_partial_return,
+            commands::returns::get_sale_return_items,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

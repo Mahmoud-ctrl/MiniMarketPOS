@@ -46,8 +46,9 @@ pub async fn create_sale(
             INSERT INTO sales
                 (session_id, cashier_id, customer_id,
                  subtotal, discount, tax, total_amount,
-                 amount_paid, change_given, payment_method, status, notes)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+                 amount_paid, change_given, payment_method, status, notes,
+                 paid_primary, paid_secondary, exchange_rate_snapshot)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
             RETURNING *
         )
         SELECT i.*, c.name AS customer_name
@@ -67,6 +68,9 @@ pub async fn create_sale(
     .bind(payload.payment_method.as_deref().unwrap_or("cash"))
     .bind(status)
     .bind(payload.notes.as_deref())
+    .bind(payload.paid_primary.unwrap_or(0))
+    .bind(payload.paid_secondary.unwrap_or(0))
+    .bind(payload.exchange_rate_snapshot.unwrap_or(0))
     .fetch_one(&mut *tx)
     .await?;
 

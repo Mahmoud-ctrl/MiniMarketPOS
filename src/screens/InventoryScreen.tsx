@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  AlertTriangle, ChevronDown, Flame, Package,
+  AlertTriangle, ChevronDown, Flame, History, Package,
   Pencil, Plus, RefreshCw, Search, Snowflake, Trash2, TrendingDown,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { generateEAN13 } from "../lib/barcode";
-import { Category, PerishableAlert, ProductStock, Supplier, User } from "../types";
+import { Category, PerishableAlert, PriceHistoryEntry, ProductStock, Supplier, User } from "../types";
 import Modal from "../components/Modal";
 import CategorySelect from "../components/CategorySelect";
 import AddProductModal from "./AddProductModal";
@@ -42,6 +42,7 @@ interface PF {
   tva_rate: string; apply_tva: boolean; apply_discount: boolean; sold_by_amount: boolean;
   min_stock: string; expiry_date: string;
   is_perishable: boolean; default_shelf_life_days: string;
+  is_variable_price: boolean; is_favorite: boolean;
 }
 
 function stockToPF(p: ProductStock, fromDb: (n: number) => string): PF {
@@ -66,6 +67,8 @@ function stockToPF(p: ProductStock, fromDb: (n: number) => string): PF {
     expiry_date:           p.expiry_date ?? "",
     is_perishable:         p.is_perishable,
     default_shelf_life_days: p.default_shelf_life_days != null ? String(p.default_shelf_life_days) : "",
+    is_variable_price:     p.is_variable_price,
+    is_favorite:           p.is_favorite,
   };
 }
 
@@ -91,6 +94,8 @@ function pfToPayload(f: PF, toDb: (s: string) => number) {
     expiry_date:           orNull(f.expiry_date),
     is_perishable:         f.is_perishable,
     default_shelf_life_days: f.default_shelf_life_days ? parseInt(f.default_shelf_life_days) : null,
+    is_variable_price:     f.is_variable_price,
+    is_favorite:           f.is_favorite,
   };
 }
 
@@ -122,10 +127,11 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 
 // ── Product Form Modal (edit) ───────────────────────────────────────────────────
 function ProductFormModal({
-  initial, editId, categories, suppliers, onClose, onSaved,
+  initial, editId, categories, suppliers, userId, onClose, onSaved,
 }: {
   initial: PF; editId: number | null;
   categories: Category[]; suppliers: Supplier[];
+  userId?: number | null;
   onClose: () => void; onSaved: () => void;
 }) {
   const { symbol, fmtNum, toDb, inputStep } = useCurrency();
@@ -149,7 +155,7 @@ function ProductFormModal({
     setSaving(true); setError("");
     try {
       const payload = pfToPayload(f, toDb);
-      if (editId != null) await api.updateProduct(editId, payload);
+      if (editId != null) await api.updateProduct(editId, payload, userId ?? null);
       else                await api.createProduct(payload as Parameters<typeof api.createProduct>[0]);
       onSaved();
     } catch (err: unknown) {
@@ -267,6 +273,15 @@ function ProductFormModal({
             <Field label="Expiry Date">
               <input className={iCls} type="date" value={f.expiry_date} onChange={set("expiry_date")} />
             </Field>
+          </div>
+        </section>
+
+        {/* POS Behaviour */}
+        <section className="space-y-3">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">POS Behaviour</p>
+          <div className="flex flex-wrap items-center gap-6">
+            <Toggle checked={f.is_favorite}       onChange={v => setF(p => ({ ...p, is_favorite: v }))}       label="Show in favorites strip" />
+            <Toggle checked={f.is_variable_price} onChange={v => setF(p => ({ ...p, is_variable_price: v }))} label="Variable / open price" />
           </div>
         </section>
 
@@ -475,6 +490,79 @@ function WasteModal({
   );
 }
 
+// ── Price History Modal ────────────────────────────────────────────────────────
+const FIELD_LABELS: Record<string, string> = {
+  cost_price:           "Cost Price",
+  sell_price_retail:    "Retail Price",
+  sell_price_wholesale: "Wholesale Price",
+  sell_price_special:   "Special Price",
+};
+
+function PriceHistoryModal({
+  product, onClose,
+}: { product: ProductStock; onClose: () => void }) {
+  const { fmt } = useCurrency();
+  const [entries, setEntries] = useState<PriceHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getPriceHistory(product.product_id)
+      .then(setEntries)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [product.product_id]);
+
+  return (
+    <Modal title={`Price History — ${product.name}`} onClose={onClose} width="max-w-2xl">
+      <div className="p-6">
+        {loading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-10 bg-[var(--bg-card)] rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="text-center py-12 text-slate-500">
+            <History size={36} strokeWidth={1} className="mx-auto mb-2 text-slate-600" />
+            <p className="text-sm">No price changes recorded yet.</p>
+            <p className="text-xs mt-1 text-slate-600">Changes will appear here after editing prices.</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {entries.map(e => (
+              <div key={e.id}
+                className="flex items-center gap-3 px-4 py-3 bg-[var(--bg-card)] border border-[var(--bd-base)] rounded-xl">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[var(--tx-base)] text-sm font-medium">
+                      {FIELD_LABELS[e.field_name] ?? e.field_name}
+                    </span>
+                    <span className="text-slate-600 text-xs">
+                      {e.changed_by_name ?? "Unknown"}
+                    </span>
+                  </div>
+                  <p className="text-slate-500 text-xs mt-0.5">
+                    {new Date(e.changed_at).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-sm tabular-nums flex-shrink-0">
+                  {e.old_value !== null ? (
+                    <span className="text-slate-500 line-through">{fmt(e.old_value)}</span>
+                  ) : (
+                    <span className="text-slate-600 text-xs italic">new</span>
+                  )}
+                  <span className="text-slate-600">→</span>
+                  <span className="text-[#14B8A6] font-semibold">{fmt(e.new_value)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 // ── Perishable Alerts Banner ───────────────────────────────────────────────────
 function PerishableBanner({ alerts, onWaste }: {
   alerts: PerishableAlert[];
@@ -542,11 +630,12 @@ export default function InventoryScreen({ user }: Props) {
   const [search, setSearch]           = useState("");
   const [showLow, setShowLow]         = useState(false);
   const [loading, setLoading]         = useState(false);
-  const [adjusting, setAdjusting]     = useState<ProductStock | null>(null);
-  const [editing, setEditing]         = useState<ProductStock | null>(null);
-  const [wasting, setWasting]         = useState<ProductStock | null>(null);
-  const [showAdd, setShowAdd]         = useState(false);
-  const [confirmDeact, setConfirmDeact] = useState<ProductStock | null>(null);
+  const [adjusting, setAdjusting]         = useState<ProductStock | null>(null);
+  const [editing, setEditing]             = useState<ProductStock | null>(null);
+  const [wasting, setWasting]             = useState<ProductStock | null>(null);
+  const [viewingHistory, setViewingHistory] = useState<ProductStock | null>(null);
+  const [showAdd, setShowAdd]             = useState(false);
+  const [confirmDeact, setConfirmDeact]   = useState<ProductStock | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -578,7 +667,7 @@ export default function InventoryScreen({ user }: Props) {
     : stocks;
 
   const handleSaved = () => {
-    setShowAdd(false); setEditing(null); setAdjusting(null); setWasting(null);
+    setShowAdd(false); setEditing(null); setAdjusting(null); setWasting(null); setViewingHistory(null);
     load();
   };
 
@@ -736,6 +825,10 @@ export default function InventoryScreen({ user }: Props) {
                         className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
                         <Plus size={13} />
                       </button>
+                      <button onClick={() => setViewingHistory(p)} title="Price history"
+                        className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] hover:bg-violet-500/20 text-slate-400 hover:text-violet-400 flex items-center justify-center transition-colors cursor-pointer">
+                        <History size={13} />
+                      </button>
                       <button onClick={() => setEditing(p)} title="Edit product"
                         className="w-7 h-7 rounded-lg bg-[var(--bg-raised)] text-slate-400 hover:text-[var(--tx-base)] flex items-center justify-center transition-colors cursor-pointer">
                         <Pencil size={13} />
@@ -768,8 +861,12 @@ export default function InventoryScreen({ user }: Props) {
         <ProductFormModal
           initial={stockToPF(editing, fromDb)} editId={editing.product_id}
           categories={categories} suppliers={suppliers}
+          userId={user.id}
           onClose={() => setEditing(null)} onSaved={handleSaved}
         />
+      )}
+      {viewingHistory && (
+        <PriceHistoryModal product={viewingHistory} onClose={() => setViewingHistory(null)} />
       )}
       {adjusting && (
         <AdjustModal
